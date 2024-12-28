@@ -16,8 +16,9 @@ const fetchWithTimeout = async (
     console.log(`Fetching URL: ${url}`);
     const fetchOptions = {
       ...options,
-      mode: 'cors',
+      mode: 'cors' as RequestMode,
       signal: controller.signal,
+      credentials: 'include' as RequestCredentials,
     };
     console.log('Fetch options:', JSON.stringify(fetchOptions, (key, value) => {
       if (key === 'signal') return '[AbortSignal]';
@@ -25,16 +26,15 @@ const fetchWithTimeout = async (
     }, 2));
 
     const response = await fetch(url, fetchOptions);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
     clearTimeout(id);
     return response;
   } catch (error) {
     clearTimeout(id);
-    console.error('Fetch error details:', {
-      name: (error as Error).name,
-      message: (error as Error).message,
-      stack: (error as Error).stack
-    });
+    console.error('Fetch error details:', error);
     throw error;
   }
 };
@@ -48,36 +48,22 @@ export const sendQuery = async (query: string, option: string, userId: string, p
       phoneNumber
     }, null, 2));
     
-    // Guardar la consulta del usuario
-    if (userId && phoneNumber) {
-      currentChatQueries.push(query);
-      console.log('Current chat queries:', JSON.stringify(currentChatQueries, null, 2));
-    } else {
-      console.log('No user/phone provided, not saving query');
-    }
+    currentChatQueries.push(query);
+    console.log('Current chat queries:', JSON.stringify(currentChatQueries, null, 2));
 
-    const response = await fetchWithTimeout(`${API_CONFIG.BASE_URL}/api/auth/query`, {
+    const response = await fetchWithTimeout(`${API_CONFIG.BASE_URL}/auth/query`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({ 
-        query, 
+      body: JSON.stringify({
+        query,
         option,
-        userName: userId,    
-        userPhone: phoneNumber  
-      }),
+        userName: userId,
+        userPhone: phoneNumber
+      })
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new APIError(
-        error.message || 'Error al enviar la consulta',
-        response.status,
-        error.error
-      );
-    }
 
     const data = await response.json();
     return data;
@@ -93,48 +79,38 @@ export const resetChat = () => {
 
 export const endChat = async (userId: string, phoneNumber: string): Promise<void> => {
   try {
-    console.log('endChat called with:', JSON.stringify({
-      userId,
-      phoneNumber,
-      queries: currentChatQueries
-    }, null, 2));
+    const response = await fetchWithTimeout(`${API_CONFIG.BASE_URL}/auth/end-chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        userName: userId,
+        userPhone: phoneNumber
+      })
+    });
 
-    if (currentChatQueries.length > 0) {
-      console.log('Saving chat history for user:', userId);
-      const response = await fetchWithTimeout(`${API_CONFIG.BASE_URL}/api/auth/chat-history`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId,
-          phoneNumber,
-          query: currentChatQueries[currentChatQueries.length - 1],
-          chatDate: new Date().toISOString()
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save chat history');
-      }
-
-      console.log('Chat history saved successfully');
-      currentChatQueries = []; // Limpiar las consultas después de guardar
+    if (!response.ok) {
+      throw new Error('Failed to end chat');
     }
+
+    resetChat();
   } catch (error) {
-    console.error('Error saving chat history:', error);
-    throw error;
+    console.error('End chat error:', error);
+    throw handleAPIError(error);
   }
 };
 
 export const getEvents = async () => {
   try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/api/events`);
-    if (!response.ok) {
-      throw new Error('Error al obtener eventos');
-    }
-    const data = await response.json();
-    return data;
+    const response = await fetchWithTimeout(`${API_CONFIG.BASE_URL}/events`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    return await response.json();
   } catch (error) {
     console.error('Error fetching events:', error);
     throw error;

@@ -16,9 +16,11 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://chatbot-frontend-xh3d.onrender.com', 'https://chatbot-backend-xh3d.onrender.com']
+    ? ['https://chatbot-frontend-wvuz.onrender.com']
     : 'http://localhost:5173',
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization']
 }));
 app.use(bodyParser.json());
 app.use(express.json());
@@ -29,13 +31,13 @@ app.get('/', (req, res) => {
 });
 
 // Test endpoint
-app.get('/test', (req, res) => {
-  res.json({ status: 'ok' });
-});
+// app.get('/test', (req, res) => {
+//   res.json({ status: 'ok' });
+// });
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/events', eventsRoutes);
+app.use('/auth', authRoutes);
+app.use('/events', eventsRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -55,6 +57,7 @@ const startServer = async () => {
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`CORS origin: ${process.env.NODE_ENV === 'production' ? 'https://chatbot-frontend-wvuz.onrender.com' : 'http://localhost:5173'}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
