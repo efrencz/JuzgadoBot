@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://chatbot-frontend.onrender.com', 'https://chatbot-backend.onrender.com']
+    ? ['https://chatbot-frontend-xh3d.onrender.com', 'https://chatbot-backend-xh3d.onrender.com']
     : 'http://localhost:5173',
   credentials: true
 }));
