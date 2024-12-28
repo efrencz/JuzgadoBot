@@ -1,4 +1,8 @@
+const isDevelopment = import.meta.env.DEV;
+
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost:3000',  // Actualizado al puerto 3000
+  BASE_URL: isDevelopment 
+    ? 'http://localhost:3001' 
+    : 'https://chatbot-backend.onrender.com',
   TIMEOUT: 10000, // 10 seconds
 };

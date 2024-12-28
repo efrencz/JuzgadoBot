@@ -1,18 +1,24 @@
 services:
   - type: web
-    name: chatbot-frontend
-    env: static
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
-    envVars:
-      - key: NODE_VERSION
-        value: 18.17.0
-
-  - type: web
     name: chatbot-backend
     env: node
     buildCommand: cd server && npm install
     startCommand: cd server && node index.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18.17.0
+      - key: PORT
+        value: 3001
+
+  - type: static
+    name: chatbot-frontend
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: NODE_VERSION
         value: 18.17.0
