@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.message {
+  display: flex;
+  align-items: flex-start;
+  margin: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  max-width: 80%;
+}
+
+.message.bot {
+  margin-right: auto;
+  background-color: #f0f0f0;
+}
+
+.message.user {
+  margin-left: auto;
+  background-color: #007bff;
+  color: white;
+}
+
+.bot-icon, .user-icon {
+  margin-right: 8px;
+  font-size: 1.2em;
+}
+
+.message-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}

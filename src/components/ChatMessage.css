@@ -1,0 +1,121 @@
+.message {
+  display: flex;
+  margin: 10px;
+  align-items: flex-start;
+}
+
+.message.bot {
+  flex-direction: row;
+}
+
+.message.user {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.bot-icon, .user-icon {
+  font-size: 24px;
+  margin: 0 10px;
+}
+
+.message-content {
+  max-width: 80%;
+  padding: 10px 15px;
+  border-radius: 15px;
+  background-color: #f0f0f0;
+}
+
+.message.bot .message-content {
+  background-color: #e3f2fd;
+}
+
+.message.user .message-content {
+  margin-left: auto;
+  background-color: #4caf50;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.radicado-info {
+  background-color: white;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.radicado-info h3 {
+  color: #1976d2;
+  margin-top: 0;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 8px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 600px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.info-section p {
+  margin: 8px 0;
+  line-height: 1.4;
+}
+
+.document-link {
+  display: inline-block;
+  padding: 6px 12px;
+  background-color: #1976d2;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  margin-left: 8px;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+
+.document-link:hover {
+  background-color: #1565c0;
+  text-decoration: none;
+}
+
+.info-section p strong {
+  color: #455a64;
+  min-width: 150px;
+  display: inline-block;
+}
+
+.formatted-message {
+  background-color: white;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.message-line {
+  margin: 4px 0;
+}
+
+.message-line:first-child {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1976d2;
+  margin-bottom: 8px;
+}
+
+.message-spacer {
+  height: 12px;
+}
+
+.regular-message {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
