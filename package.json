@@ -9,13 +9,19 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+<<<<<<< HEAD
     "server": "node server/index.js",
     "start": "node server/index.js",
+=======
+    "server": "node --experimental-specifier-resolution=node server/index.js",
+    "start": "node --experimental-specifier-resolution=node server/index.js",
+>>>>>>> d164d12f1f07022ac16d88b8da364b9f5aa5764e
     "postinstall": "npm run build"
   },
   "dependencies": {
     "axios": "^1.7.9",
     "bcrypt": "^5.1.1",
+<<<<<<< HEAD
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "date-fns": "^3.6.0",
@@ -25,13 +31,21 @@
     "google-spreadsheet": "^4.1.1",
     "googleapis": "^129.0.0",
     "json2csv": "^6.0.0-alpha.2",
+=======
+    "cors": "^2.8.5",
+    "date-fns": "^3.6.0",
+    "express": "^4.18.3",
+>>>>>>> d164d12f1f07022ac16d88b8da364b9f5aa5764e
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.344.0",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
+<<<<<<< HEAD
     "node-fetch": "^3.3.2",
     "pg": "^8.13.1",
     "pg-hstore": "^2.3.4",
+=======
+>>>>>>> d164d12f1f07022ac16d88b8da364b9f5aa5764e
     "react": "^18.3.1",
     "react-calendar": "^5.1.0",
     "react-dom": "^18.3.1",
