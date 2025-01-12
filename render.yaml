@@ -35,4 +35,4 @@ services:
       - key: NODE_VERSION
         value: 18.17.0
       - key: VITE_API_URL
-        value: https://chatbot-backend-xh3d.onrender.com
+        value: https://juzgadobot.onrender.com
