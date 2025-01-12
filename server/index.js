@@ -26,12 +26,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Configuración de CORS
-app.use(cors({
-  origin: ['https://frontend-b3ss.onrender.com', 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true,
-  allowedHeaders: ['Content-Type', 'Accept', 'Authorization']
-}));
+app.use(cors());
 
 // Middleware para parsear JSON
 app.use(express.json());
@@ -66,6 +61,7 @@ app.use('/clear', clearRoutes);
 
 // Ruta de prueba
 app.get('/test', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.json({ message: 'Backend is working!' });
 });
 
