@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: chatbot-backend
+    env: node
+    rootDir: .
+    buildCommand: cd server && npm install
+    startCommand: cd server && node index.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18.17.0
+      - key: PORT
+        value: 3000
+      - key: GOOGLE_SHEET_ID
+        value: "1zJWkTbTYlQVZYWpXZLxkQPPOQHcHOBXcCTbfWJpwWVc"
+      - key: GOOGLE_SERVICE_ACCOUNT_EMAIL
+        value: "chatbot-368@chatbot-403300.iam.gserviceaccount.com"
+      - key: GOOGLE_PRIVATE_KEY
+        value: "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDHAGGxXCDYxEQk\nDWZxQcLdWODNFJWXEQxXlPXpUXZUJGCKWXmPuHgNZBrYHzRjfuqQVKBDjJeWWiWg\nJVkwdpqFTZZRXlIxWXKKhXfPDNNKIrwWNcmTOPxPxGgJXXlpPRW7eDhGhxRDVsKb\nVwlBwDcLPQPwFSLHZHwHlwkV/wDtA6jRDxLJj7ySUcVqPOxKEKI1lEYWCITvDXtZ\nCnSFZXwcYJGBuZVULBBzKbXXLwQQOEFE5HtXmEZXxGSFWFhwLPi1ZhWQOKxsxVAw\nYSPLBOTvGJZxBbxXWBxvhKlLBVCZkAMqLGBmMHUfOlDkZOHILTtQxgHhbIxJBpqx\n2rWaGcYbAgMBAAECggEABWGVwXSVjFGxJJgTvNp9YBmhQBCnQa2EwZZUeYZvJYGf\nGmjhFXBQZzGGVNq5PvZxvJPeVFXqFpQBPwQQz7RxaRTvBKfYCnF6BYH3t2nGPOBK\nMXGLmHXxlWoKrwXa0ZhJDkbYtNmUTrfZhwv0oPZf3Zt7J+KbQOhXxhJnHOZSLZVD\nBtHYGJQKGMXBs9YYbRMGzVc4E0cL4kN2qKbYPF1kFBOuFWZVIVjEQpOGSyHGZQcT\nHEFjRHZEqvxZALxGKQNZQGxXTVPtXGKFOKNJBbZdDJRmKEEQZPcbOdDnfDPgBJBz\nQkGDXTUxBVAHLFhKKxJqVWHGPdpHUBvwQfWXLwYSgQKBgQDrOmWPFh5qQV8hRPPJ\nZuCxAiJkQQUjF/D3yvEp2gNYHzQxPnZGvLhPSHqYYIGZGsXEZYNRv2/DEXXKwIvH\nPcDdv1h2RbWE+lRGEJUDqQQZZvyHQxECZbHwF9yx0DPFT1+PDmNEOFJ/qFKFD6Dn\nE6AXhTFQeHvJRcqmKhGQUQEuYQKBgQDYh+qBBXm2yfHABuoYSWF+VXb9MULRGJqk\n7G7KFMHkFVlXOQxUXzayb3FEI2sXbDZVpPdNYFxBxHQ0GHOJZtXXpxlYDNhXvFwl\nMlHPKxCKs7yVGVZp3UQpvVUXNLJzQyQvtJE/XOkIUjqTGXHVGdCNpqsRXXxCLrLF\nZzYWfKQtewKBgQDpHoQd6Qv+gkRvXOJTqBTXfSIKlPDPGHgEGBJ+M4QpNVVoEjsm\n9zXR7kNQwAeyBhgNZHnBhfVFZXIXKYgz+v9xDQVBPHVEiSGVQQqF5LRuFEqKlJ9k\nGOxEEDPOJQfIbHVvU4mkWwVZeOQXGnwUhxWlKMKyGEYeS6RjWGWHYEQzwQKBgDNX\nQVbOZPmX3UkuHGjpFJ+YxIXz3p6MKPD/EHKrAGLkWQyVQKhxkxRF0oBxpNm2HXZH\nQRMwsOGXZlHxRVGXe0D3wEzPEcGSRbhGxDwsSCHxzaYZHlLvQc+3qkxAhBCJLtfS\nBGIRrOBFNRVJBEk3WZOQDHzMZtLAWOvSHZJrXXqbAoGAEFc6lR3gyLKCAZrm3h1e\nNIVRZVQF4tDmOT+yYYLZWpX8KgAIvKe/p80MXt/K/IZfX2IHhJbSZyiA4RhBK/Hs\nBwYQEEJXWVWJ7KYbHwmyUTpsDwxNvbOXRuO5qzVMJWpGzHkM+gkV0YXY0LzMz6Xt\nLuDq2+sCXZe/XHMwXBDgLhw=\n-----END PRIVATE KEY-----\n"
+
+  - type: static
+    name: chatbot-frontend
+    env: static
+    rootDir: .
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: 18.17.0
