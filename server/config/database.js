@@ -10,7 +10,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Configuración de Sequelize para PostgreSQL
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
+const databaseUrl = process.env.DATABASE_URL || 'postgresql://chatbot_bd_user:kPmqEtee0DjQ9LqI3qMZ15UwZQWyNjof@dpg-cu1v0od2ng1s73eg4nhg-a.oregon-postgres.render.com/chatbot_bd';
+
+const sequelize = new Sequelize(databaseUrl, {
   dialect: 'postgres',
   protocol: 'postgres',
   dialectOptions: {
