@@ -51,9 +51,9 @@ class AuthService {
       const token = this.getToken();
       if (!token) throw new Error('No hay token de autenticación');
 
-      console.log('Fetching stats from:', `${API_CONFIG.BASE_URL}/chat-history/admin/chat-history`);
+      console.log('Fetching stats from:', `${API_CONFIG.BASE_URL}/chat-history/admin`);
       
-      const response = await fetch(`${API_CONFIG.BASE_URL}/chat-history/admin/chat-history`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/chat-history/admin`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -107,6 +107,40 @@ class AuthService {
 
     const data = await response.json();
     return data;
+  }
+
+  static async clearHistory() {
+    try {
+      const token = this.getToken();
+      if (!token) throw new Error('No hay token de autenticación');
+
+      console.log('Clearing chat history...');
+      
+      const response = await fetch(`${API_CONFIG.BASE_URL}/chat-history/clear-all`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          this.logout();
+          throw new Error('Sesión expirada');
+        }
+
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Error al limpiar el historial');
+      }
+
+      const data = await response.json();
+      console.log('History cleared successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('Error clearing history:', error);
+      throw error;
+    }
   }
 
   static setToken(token: string) {

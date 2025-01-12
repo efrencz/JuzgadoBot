@@ -9,7 +9,7 @@ services:
       - key: NODE_VERSION
         value: 18.17.0
       - key: PORT
-        value: 3001
+        value: 3000
 
   - type: static
     name: chatbot-frontend

@@ -8,15 +8,21 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const dbPath = path.join(__dirname, '..', 'database.sqlite');
 
-const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: dbPath,
-  logging: false, // Desactivar logging para producción
+// Configuración de Sequelize para PostgreSQL
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect: 'postgres',
+  protocol: 'postgres',
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
+    }
+  },
+  logging: false,
   define: {
-    timestamps: true, // Habilitar timestamps por defecto
-    underscored: true // Usar snake_case para nombres de columnas
+    timestamps: true,
+    underscored: true
   }
 });
 

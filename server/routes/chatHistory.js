@@ -5,10 +5,10 @@ import { Op } from 'sequelize';
 const router = express.Router();
 
 // POST: Guardar historial del chat
-router.post('/chat-history', async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { userName, phoneNumber, query, response } = req.body;
-    console.log('POST /chat-history - Received request body:', req.body);
+    console.log('POST / - Received request body:', req.body);
     
     if (!userName || !phoneNumber || !query) {
       console.error('Missing required fields:', { userName, phoneNumber, query });
@@ -76,143 +76,139 @@ router.post('/chat-history', async (req, res) => {
 });
 
 // GET: Obtener historial por usuario
-router.get('/chat-history/:userId', async (req, res) => {
+router.get('/user/:userName', async (req, res) => {
   try {
-    const { userId } = req.params;
-    console.log('GET /chat-history/:userId - Fetching history for:', userId);
+    const { userName } = req.params;
+    console.log('GET /user/:userName - Fetching history for:', userName);
 
     const history = await ChatHistory.findAll({
-      where: { userId },
-      order: [['chatDate', 'DESC']]
+      where: { userName },
+      order: [['createdAt', 'DESC']]
     });
-    
-    console.log(`Found ${history.length} records for user ${userId}`);
 
-    // Si la solicitud acepta JSON, enviar JSON
-    if (req.accepts('json')) {
-      res.json(history);
-    } else {
-      // Si no, enviar una página HTML formateada
+    console.log(`Found ${history.length} records for user ${userName}`);
+
+    // Si se solicita formato HTML
+    if (req.headers.accept && req.headers.accept.includes('text/html')) {
       const htmlContent = `
         <!DOCTYPE html>
         <html>
-        <head>
-          <title>Chat History for ${userId}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .chat-entry { 
-              border: 1px solid #ddd; 
-              margin: 10px 0; 
-              padding: 15px;
-              border-radius: 5px;
-            }
-            .timestamp { color: #666; font-size: 0.9em; }
-            .query { margin-top: 10px; white-space: pre-wrap; }
-          </style>
-        </head>
-        <body>
-          <h1>Chat History for User: ${userId}</h1>
-          ${history.length === 0 ? '<p>No chat history found.</p>' :
-            history.map(entry => `
-              <div class="chat-entry">
-                <div class="timestamp">Date: ${new Date(entry.chatDate).toLocaleString()}</div>
-                <div>Phone: ${entry.phoneNumber}</div>
-                <div class="query">Query: ${entry.query}</div>
+          <head>
+            <title>Chat History for ${userName}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              .chat-item { margin-bottom: 20px; }
+              .query { color: #2c3e50; }
+              .response { color: #27ae60; margin-left: 20px; }
+            </style>
+          </head>
+          <body>
+            <h1>Chat History for User: ${userName}</h1>
+            ${history.map(chat => `
+              <div class="chat-item">
+                <p class="query"><strong>Query:</strong> ${chat.queries.join(', ')}</p>
+                <p class="response"><strong>Response:</strong> ${chat.responses.join(', ')}</p>
+                <small>Date: ${new Date(chat.createdAt).toLocaleString()}</small>
               </div>
             `).join('')}
-        </body>
+          </body>
         </html>
       `;
-      res.type('html').send(htmlContent);
+      res.send(htmlContent);
+    } else {
+      // Si se solicita JSON
+      res.json({
+        success: true,
+        userName: req.params.userName,
+        data: history
+      });
     }
   } catch (error) {
-    console.error('Error fetching chat history:', {
-      error: error.message,
-      stack: error.stack,
-      userId: req.params.userId
+    console.error('Error fetching chat history:', error);
+    res.status(500).json({ 
+      error: 'Error fetching chat history',
+      details: error.message 
     });
-    
-    const errorMessage = error.message || 'Failed to fetch chat history';
-    
-    if (req.accepts('json')) {
-      res.status(500).json({ error: errorMessage });
-    } else {
-      res.status(500).send(`
-        <!DOCTYPE html>
-        <html>
-        <head><title>Error</title></head>
-        <body>
-          <h1>Error</h1>
-          <p>${errorMessage}</p>
-        </body>
-        </html>
-      `);
-    }
   }
 });
 
-// Ruta para obtener todo el historial (admin)
-router.get('/admin/chat-history', async (req, res) => {
+// GET: Obtener todo el historial (ruta admin)
+router.get('/admin', async (req, res) => {
   try {
-    console.log('Obteniendo historial de chat...');
-    
-    const chatHistories = await ChatHistory.findAll({
-      order: [['updatedAt', 'DESC']]
+    console.log('GET /admin - Fetching all chat history');
+
+    const history = await ChatHistory.findAll({
+      order: [['createdAt', 'DESC']]
     });
 
-    console.log(`Se encontraron ${chatHistories.length} registros`);
+    console.log(`Found ${history.length} total records`);
 
-    // Formatear los resultados para incluir conteo y detalles
-    const formattedHistories = chatHistories.map(history => {
-      try {
-        const queries = Array.isArray(history.queries) ? history.queries : [];
-        const responses = Array.isArray(history.responses) ? history.responses : [];
-        
-        // Crear un array de conversaciones combinando preguntas y respuestas
-        const conversations = queries.map((query, index) => {
-          let response = null;
-          try {
-            response = responses[index] ? JSON.parse(responses[index]) : null;
-          } catch (e) {
-            console.error('Error parsing response:', e);
-            response = { data: 'Error al procesar la respuesta' };
-          }
-          
-          return {
-            query,
-            response: response?.data || 'Sin respuesta'
-          };
-        });
-
-        return {
-          id: history.id,
-          userName: history.userName,
-          phoneNumber: history.phoneNumber,
-          totalConsultas: queries.length,
-          fechaUltimaConsulta: history.updatedAt,
-          fechaPrimeraConsulta: history.createdAt,
-          conversations
-        };
-      } catch (error) {
-        console.error('Error processing history record:', error);
-        return {
-          id: history.id,
-          userName: history.userName || 'Error',
-          phoneNumber: history.phoneNumber || 'Error',
-          totalConsultas: 0,
-          fechaUltimaConsulta: history.updatedAt,
-          fechaPrimeraConsulta: history.createdAt,
-          conversations: [],
-          error: 'Error procesando el registro'
-        };
-      }
-    });
-
-    res.json(formattedHistories);
+    // Si se solicita formato HTML
+    if (req.headers.accept && req.headers.accept.includes('text/html')) {
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>All Chat History</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              .chat-item { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+              .user-info { color: #2c3e50; font-weight: bold; }
+              .query { color: #2c3e50; margin-left: 20px; }
+              .response { color: #27ae60; margin-left: 40px; }
+              .timestamp { color: #7f8c8d; font-size: 0.9em; }
+            </style>
+          </head>
+          <body>
+            <h1>All Chat History</h1>
+            ${history.map(chat => `
+              <div class="chat-item">
+                <p class="user-info">User: ${chat.userName} (${chat.phoneNumber})</p>
+                <p class="query"><strong>Queries:</strong> ${chat.queries.join(', ')}</p>
+                <p class="response"><strong>Responses:</strong> ${chat.responses.join(', ')}</p>
+                <p class="timestamp">Date: ${new Date(chat.createdAt).toLocaleString()}</p>
+              </div>
+            `).join('')}
+          </body>
+        </html>
+      `;
+      res.send(htmlContent);
+    } else {
+      // Si se solicita JSON
+      res.json({
+        success: true,
+        data: history
+      });
+    }
   } catch (error) {
-    console.error('Error al obtener historial:', error);
+    console.error('Error fetching all chat history:', error);
     res.status(500).json({ 
-      error: 'Error al obtener historial',
+      error: 'Error fetching chat history',
+      details: error.message 
+    });
+  }
+});
+
+// DELETE: Limpiar todo el historial
+router.delete('/clear-all', async (req, res) => {
+  try {
+    console.log('DELETE /clear-all - Limpiando todo el historial');
+    
+    // Eliminar todos los registros
+    await ChatHistory.destroy({
+      where: {},
+      truncate: true
+    });
+
+    console.log('Historial limpiado exitosamente');
+    res.json({ 
+      success: true, 
+      message: 'Historial limpiado exitosamente' 
+    });
+  } catch (error) {
+    console.error('Error al limpiar el historial:', error);
+    res.status(500).json({ 
+      error: 'Error al limpiar el historial',
       details: error.message 
     });
   }

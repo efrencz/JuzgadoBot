@@ -119,11 +119,12 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<ChatStat[]>([]);
-  const [expandedItem, setExpandedItem] = useState<number | null>(null);
+  const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [searchPhone, setSearchPhone] = useState('');
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -131,7 +132,23 @@ const Dashboard: React.FC = () => {
         setLoading(true);
         const response = await AuthService.getStats();
         console.log('Stats response:', response);
-        setStats(response || []);
+        
+        // Extraer el array de datos de la respuesta
+        const chatData = response.data.map((item: any) => ({
+          id: item.id,
+          userName: item.userName,
+          phoneNumber: item.phoneNumber,
+          totalConsultas: item.queries.length,
+          fechaUltimaConsulta: item.updatedAt,
+          fechaPrimeraConsulta: item.createdAt,
+          conversations: item.queries.map((query: string, index: number) => ({
+            query,
+            response: item.responses[index] || ''
+          }))
+        }));
+        
+        setStats(chatData);
+        setLastUpdate(new Date());
       } catch (error) {
         console.error('Error fetching stats:', error);
         if (error instanceof Error && error.message === 'Sesión expirada') {
@@ -145,10 +162,17 @@ const Dashboard: React.FC = () => {
     };
 
     fetchStats();
-    // Actualizar cada 30 segundos
-    const interval = setInterval(fetchStats, 30000);
+    // Actualizar cada 5 minutos en lugar de cada 30 segundos
+    const interval = setInterval(fetchStats, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [navigate]);
+
+  const toggleExpanded = (id: number) => {
+    setExpandedItems(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
 
   const handleSearch = () => {
     if (!searchPhone) {
@@ -164,7 +188,20 @@ const Dashboard: React.FC = () => {
     setSearchPhone('');
     try {
       const response = await AuthService.getStats();
-      setStats(response || []);
+      const chatData = response.data.map((item: any) => ({
+        id: item.id,
+        userName: item.userName,
+        phoneNumber: item.phoneNumber,
+        totalConsultas: item.queries.length,
+        fechaUltimaConsulta: item.updatedAt,
+        fechaPrimeraConsulta: item.createdAt,
+        conversations: item.queries.map((query: string, index: number) => ({
+          query,
+          response: item.responses[index] || ''
+        }))
+      }));
+      setStats(chatData);
+      setLastUpdate(new Date());
     } catch (error) {
       console.error('Error resetting search:', error);
     }
@@ -218,36 +255,37 @@ const Dashboard: React.FC = () => {
   };
 
   const handleClearHistory = async () => {
-    // Mostrar diálogo de confirmación
-    const confirmed = window.confirm(
-      '¿Estás seguro de que deseas eliminar todo el historial? Esta acción no se puede deshacer.'
-    );
-
-    if (!confirmed) {
+    if (!window.confirm('¿Estás seguro de que deseas limpiar todo el historial? Esta acción no se puede deshacer.')) {
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:3000/clear/chat-history', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al limpiar el historial');
-      }
-
-      const result = await response.json();
-      alert(result.message);
+      setLoading(true);
+      await AuthService.clearHistory();
       
-      // Recargar los datos
-      const statsResponse = await AuthService.getStats();
-      setStats(statsResponse || []);
+      // Actualizar la vista después de limpiar
+      const response = await AuthService.getStats();
+      const chatData = response.data.map((item: any) => ({
+        id: item.id,
+        userName: item.userName,
+        phoneNumber: item.phoneNumber,
+        totalConsultas: item.queries.length,
+        fechaUltimaConsulta: item.updatedAt,
+        fechaPrimeraConsulta: item.createdAt,
+        conversations: item.queries.map((query: string, index: number) => ({
+          query,
+          response: item.responses[index] || ''
+        }))
+      }));
+      
+      setStats(chatData);
+      setLastUpdate(new Date());
+      alert('Historial limpiado exitosamente');
     } catch (error) {
       console.error('Error al limpiar el historial:', error);
-      alert('Error al limpiar el historial');
+      alert('Error al limpiar el historial: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -275,29 +313,37 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Dashboard de Consultas</h1>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Panel de Administración</h1>
+          <p className="text-gray-600">
+            Última actualización: {formatDate(lastUpdate.toISOString())}
+          </p>
+          {error && <p className="text-red-500 mt-2">{error}</p>}
+        </div>
         <div className="flex gap-4">
           <button
             onClick={handleExport}
-            className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 flex items-center gap-2"
+            className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 flex items-center gap-2"
+            disabled={loading}
           >
             <Download size={20} />
             Exportar Historial
           </button>
           <button
             onClick={handleClearHistory}
-            className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 flex items-center gap-2"
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 flex items-center gap-2 disabled:opacity-50"
+            disabled={loading}
           >
             <Trash2 size={20} />
-            Limpiar Historial
+            {loading ? 'Limpiando...' : 'Limpiar Historial'}
           </button>
           <button
             onClick={() => {
               AuthService.logout();
               navigate('/admin');
             }}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
           >
             Cerrar Sesión
           </button>
@@ -332,55 +378,62 @@ const Dashboard: React.FC = () => {
         </button>
       </div>
 
-      <div className="grid gap-6">
-        {stats.map((stat) => (
-          <div key={stat.id} className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h2 className="text-xl font-bold mb-2">{stat.userName}</h2>
-                <p className="text-gray-600"> {stat.phoneNumber}</p>
-                <p className="text-gray-600"> Total consultas: {stat.totalConsultas}</p>
-                <p className="text-gray-600">
-                  Primera consulta: {formatDate(stat.fechaPrimeraConsulta)}
-                </p>
-                <p className="text-gray-600">
-                  Última consulta: {formatDate(stat.fechaUltimaConsulta)}
-                </p>
-              </div>
-              <button
-                onClick={() => setExpandedItem(expandedItem === stat.id ? null : stat.id)}
-                className="bg-blue-100 text-blue-600 px-3 py-1 rounded hover:bg-blue-200"
-              >
-                {expandedItem === stat.id ? 'Ocultar' : 'Ver consultas'}
-              </button>
-            </div>
-
-            {expandedItem === stat.id && stat.conversations && (
-              <div className="mt-4 border-t pt-4">
-                <h3 className="text-lg font-semibold mb-4">Historial de Consultas</h3>
-                <div className="space-y-4">
-                  {stat.conversations.map((conv, idx) => (
-                    <div key={idx} className="bg-gray-50 p-4 rounded">
-                      <div className="mb-2">
-                        <span className="font-medium">Consulta:</span>
-                        <p className="ml-4 text-gray-700">{conv.query}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium">Respuesta:</span>
-                        <p className="ml-4 text-gray-700">
-                          {typeof conv.response === 'string' 
-                            ? conv.response 
-                            : JSON.stringify(conv.response, null, 2)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+      {loading ? (
+        <div className="text-center py-8">
+          <p className="text-gray-600">Cargando datos...</p>
+        </div>
+      ) : (
+        <div className="grid gap-6">
+          {stats.map((stat) => (
+            <div key={stat.id} className="bg-white p-6 rounded-lg shadow-md">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h2 className="text-xl font-bold mb-2">{stat.userName}</h2>
+                  <p className="text-gray-600">{stat.phoneNumber}</p>
+                  <p className="text-gray-600">Total consultas: {stat.totalConsultas}</p>
+                  <p className="text-gray-600">
+                    Primera consulta: {formatDate(stat.fechaPrimeraConsulta)}
+                  </p>
+                  <p className="text-gray-600">
+                    Última consulta: {formatDate(stat.fechaUltimaConsulta)}
+                  </p>
                 </div>
+                <button
+                  onClick={() => toggleExpanded(stat.id)}
+                  className="bg-blue-100 text-blue-600 px-3 py-1 rounded hover:bg-blue-200"
+                >
+                  {expandedItems[stat.id] ? 'Ocultar' : 'Ver consultas'}
+                </button>
               </div>
-            )}
-          </div>
-        ))}
-      </div>
+
+              {expandedItems[stat.id] && stat.conversations && (
+                <div className="mt-4 border-t pt-4">
+                  <h3 className="text-lg font-semibold mb-4">Historial de Consultas</h3>
+                  <div className="space-y-4">
+                    {stat.conversations.map((conv, idx) => (
+                      <div key={idx} className="bg-gray-50 p-4 rounded">
+                        <div className="mb-2">
+                          <span className="font-medium">Consulta:</span>
+                          <p className="ml-4 text-gray-700">{conv.query}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Respuesta:</span>
+                          <p className="ml-4 text-gray-700 whitespace-pre-wrap">
+                            {typeof conv.response === 'string' 
+                              ? conv.response 
+                              : JSON.stringify(conv.response, null, 2)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      
       <ChangePasswordModal
         isOpen={isChangePasswordModalOpen}
         onClose={() => setIsChangePasswordModalOpen(false)}
