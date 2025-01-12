@@ -37,13 +37,4 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
-  - type: web
-    name: juzgadobot-frontend
-    env: node
-    buildCommand: npm install && npm run build
-    startCommand: npm run preview
-    envVars:
-      - key: NODE_VERSION
-        value: 18.17.0
-      - key: VITE_API_URL
-        value: https://juzgadobot.onrender.com
+ 
