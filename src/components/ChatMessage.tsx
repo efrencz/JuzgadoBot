@@ -19,9 +19,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
       {data.opositor && <p><span className="icon">👥</span><strong>Opositor</strong> {data.opositor}</p>}
       {data.estado && <p><span className="icon">🔄</span><strong>Estado</strong> {data.estado}</p>}
       {data.ultimaActuacion && <p><span className="icon">✍️</span><strong>Última Actuación</strong> {data.ultimaActuacion}</p>}
-      {data.fechaProvidencia && <p><span className="icon">📆</span><strong>Fecha Providencia</strong> {data.fechaProvidencia}</p>}
+      {data.fechaProvidencia && <p><span className="icon">📅</span><strong>Fecha Providencia</strong> {data.fechaProvidencia}</p>}
       {data.fechaNotificacion && <p><span className="icon">📢</span><strong>Fecha Notificación</strong> {data.fechaNotificacion}</p>}
-      {data.diasUltimaActuacion && <p><span className="icon">⏳</span><strong>Días desde última actuación</strong> {data.diasUltimaActuacion}</p>}
       {data.enlace && (
         <p>
           <span className="icon">🔗</span><strong>Enlace</strong>
