@@ -1,35 +1,92 @@
 import { DataTypes } from 'sequelize';
-import sequelize from '../config/database.js';
+import database from '../config/database.js';
 
-const ChatHistory = sequelize.define('ChatHistory', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
-  userId: {
+const chat_histories = database.sequelize.define('chat_histories', {
+  userName: {
     type: DataTypes.STRING,
     allowNull: false,
-    defaultValue: 'anonymous'
+    defaultValue: 'anonymous',
+    field: 'user_name'
   },
   phoneNumber: {
     type: DataTypes.STRING,
     allowNull: false,
-    defaultValue: 'unknown'
+    defaultValue: 'unknown',
+    field: 'phone_number'
   },
-  query: {
+  sessionId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    field: 'session_id'
+  },
+  queries: {
     type: DataTypes.TEXT,
     allowNull: false,
-    defaultValue: ''
+    defaultValue: '[]',
+    get() {
+      const rawValue = this.getDataValue('queries');
+      if (!rawValue) return [];
+      try {
+        return JSON.parse(rawValue);
+      } catch (error) {
+        console.error('Error parsing queries:', error);
+        return [];
+      }
+    },
+    set(value) {
+      let valueToStore = value;
+      if (Array.isArray(value)) {
+        valueToStore = JSON.stringify(value);
+      } else if (typeof value === 'string') {
+        // Verificar si ya es un string JSON válido
+        try {
+          JSON.parse(value);
+          valueToStore = value;
+        } catch {
+          valueToStore = JSON.stringify([value]);
+        }
+      } else {
+        valueToStore = '[]';
+      }
+      this.setDataValue('queries', valueToStore);
+    }
   },
-  response: {
+  responses: {
     type: DataTypes.TEXT,
     allowNull: false,
-    defaultValue: '{}'
+    defaultValue: '[]',
+    get() {
+      const rawValue = this.getDataValue('responses');
+      if (!rawValue) return [];
+      try {
+        return JSON.parse(rawValue);
+      } catch (error) {
+        console.error('Error parsing responses:', error);
+        return [];
+      }
+    },
+    set(value) {
+      let valueToStore = value;
+      if (Array.isArray(value)) {
+        valueToStore = JSON.stringify(value);
+      } else if (typeof value === 'string') {
+        // Verificar si ya es un string JSON válido
+        try {
+          JSON.parse(value);
+          valueToStore = value;
+        } catch {
+          valueToStore = JSON.stringify([value]);
+        }
+      } else {
+        valueToStore = '[]';
+      }
+      this.setDataValue('responses', valueToStore);
+    }
   }
 }, {
-  tableName: 'ChatHistories',
-  timestamps: true
+  timestamps: true,
+  underscored: true,
+  tableName: 'chat_histories'
 });
 
-export default ChatHistory;
+export default chat_histories;

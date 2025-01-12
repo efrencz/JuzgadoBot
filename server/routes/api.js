@@ -58,44 +58,8 @@ router.post('/query', async (req, res) => {
       });
     }
 
-    // Format the response based on whether it's a single result or multiple
-    let responseText;
-    if (Array.isArray(result.data)) {
-      // Multiple results (folio de matrícula search)
-      responseText = 'Encontré los siguientes resultados:\n\n' +
-        result.data.map((item, index) => 
-          `${index + 1}. Radicado: ${item.radicado}\n` +
-          `   Predio: ${item.predio}\n` +
-          `   Municipio: ${item.municipio}\n` +
-          `   Solicitante: ${item.solicitante}\n` +
-          `   Opositor: ${item.opositor}\n` +
-          `   Estado: ${item.estado}\n` +
-          `   Última actuación: ${item.ultimaActuacion}\n` +
-          `   Fecha Providencia: ${item.fechaProvidencia}\n` +
-          `   Fecha notificación: ${item.fechaNotificacion}\n` +
-          `   Días de última actuación: ${item.diasUltimaActuacion}\n` +
-          `   Enlace: ${item.enlace}\n` +
-          `   Sustanciador: ${item.sustanciador}`
-        ).join('\n\n');
-    } else {
-      // Single result (radicado search)
-      const data = result.data;
-      responseText = 'Aquí está la información del radicado:\n\n' +
-        `Radicado: ${data.radicado}\n` +
-        `Predio: ${data.predio}\n` +
-        `Municipio: ${data.municipio}\n` +
-        `Solicitante: ${data.solicitante}\n` +
-        `Opositor: ${data.opositor}\n` +
-        `Estado: ${data.estado}\n` +
-        `Última actuación: ${data.ultimaActuacion}\n` +
-        `Fecha Providencia: ${data.fechaProvidencia}\n` +
-        `Fecha notificación: ${data.fechaNotificacion}\n` +
-        `Días de última actuación: ${data.diasUltimaActuacion}\n` +
-        `Enlace: ${data.enlace}\n` +
-        `Sustanciador: ${data.sustanciador}`;
-    }
-
-    res.json({ response: responseText });
+    // Enviar directamente los datos estructurados
+    res.json(result.data);
   } catch (error) {
     console.error('Query processing error:', error);
     res.status(500).json({ 

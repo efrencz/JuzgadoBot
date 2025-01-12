@@ -1,8 +1,8 @@
 import { DataTypes } from 'sequelize';
 import bcrypt from 'bcrypt';
-import sequelize from '../config/database.js';
+import database from '../config/database.js';
 
-const Admin = sequelize.define('Admin', {
+const Admin = database.sequelize.define('Admin', {
   username: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -10,7 +10,11 @@ const Admin = sequelize.define('Admin', {
   },
   password: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
+    set(value) {
+      const hash = bcrypt.hashSync(value, 10);
+      this.setDataValue('password', hash);
+    }
   }
 });
 

@@ -25,10 +25,13 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await AuthService.login(username, password);
+      const response = await AuthService.login(username, password);
+      console.log('Login successful:', response);
+      AuthService.setToken(response.token); // Asegurarnos de que el token se guarde
       navigate('/admin/dashboard');
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Error al iniciar sesión');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setError(error.message || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }

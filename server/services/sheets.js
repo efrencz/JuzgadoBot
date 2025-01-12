@@ -109,6 +109,7 @@ export async function searchByRadicado(radicado) {
     return {
       found: true,
       data: {
+        source: 'Hoja 1',
         radicado: result._rawData[0],
         predio: result._rawData[1],
         municipio: result._rawData[2],
@@ -169,6 +170,7 @@ export async function searchByFolio(folio) {
     return {
       found: true,
       data: results.map(row => ({
+        source: 'Hoja 1',
         radicado: row._rawData[0],
         predio: row._rawData[1],
         municipio: row._rawData[2],

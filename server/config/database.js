@@ -13,39 +13,52 @@ const dbPath = path.join(__dirname, '..', 'database.sqlite');
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: dbPath,
-  logging: false
+  logging: false, // Desactivar logging para producción
+  define: {
+    timestamps: true, // Habilitar timestamps por defecto
+    underscored: true // Usar snake_case para nombres de columnas
+  }
 });
 
 // Función para inicializar la base de datos
-export const initializeDatabase = async () => {
+const initializeDatabase = async () => {
   try {
     await sequelize.authenticate();
     console.log('Database connection has been established successfully.');
+
+    // Importar todos los modelos
+    const [adminModule, chatHistoryModule] = await Promise.all([
+      import('../models/admin.js'),
+      import('../models/chatHistory.js')
+    ]);
+
+    const Admin = adminModule.default;
+    const ChatHistory = chatHistoryModule.default;
 
     // Sincronizar modelos con la base de datos
     await sequelize.sync({ alter: true }); 
     console.log('Database synchronized successfully.');
 
-    // Importar el modelo Admin después de la sincronización
-    const Admin = (await import('../models/admin.js')).default;
-
-    // Crear usuario admin por defecto si no existe
-    const adminExists = await Admin.findOne({ where: { username: 'admin' } });
+    // Crear admin por defecto si no existe
+    const adminExists = await Admin.findOne();
     if (!adminExists) {
-      // Hash the password before creating the admin user
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('admin123', salt);
-
       await Admin.create({
         username: 'admin',
-        password: hashedPassword
+        password: await bcrypt.hash('admin123', 10)
       });
-      console.log('Default admin user created successfully.');
+      console.log('Default admin user created.');
     }
+
+    return true;
   } catch (error) {
     console.error('Unable to initialize database:', error);
-    throw error;
+    return false;
   }
 };
 
-export default sequelize;
+const database = {
+  sequelize,
+  initializeDatabase
+};
+
+export default database;

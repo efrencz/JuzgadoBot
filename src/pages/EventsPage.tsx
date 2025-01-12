@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import EventCalendar from '../components/EventCalendar';
 import EventCard from '../components/EventCard';
-import { format, parseISO, startOfDay, isEqual } from 'date-fns';
+import { format, parseISO, startOfDay, isEqual, isValid, utcToZonedTime, zonedTimeToUtc } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getEvents } from '../services/api';
 
@@ -14,7 +14,11 @@ interface Event {
 
 const EventsPage: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    return startOfDay(today);
+  });
+  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,51 +29,94 @@ const EventsPage: React.FC = () => {
   const loadEvents = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await getEvents();
-      console.log('Eventos recibidos del servidor:', response);
-
-      if (!response.events) {
-        console.error('Respuesta del servidor sin eventos:', response);
-        throw new Error('Formato de respuesta inválido');
+      
+      if (!response || !response.events) {
+        throw new Error('No se pudieron cargar los eventos');
       }
 
       setEvents(response.events);
-      console.log('Eventos guardados en el estado:', response.events);
-      setError(null);
+      console.log('Eventos cargados:', response.events);
     } catch (err) {
-      console.error('Error detallado al cargar eventos:', err);
-      setError('Error al cargar los eventos. Por favor, intente más tarde.');
+      console.error('Error al cargar eventos:', err);
+      setError('No se pudieron cargar los eventos. Por favor, intente más tarde.');
+      setEvents([{
+        fecha: new Date().toISOString(),
+        actividad: "Error al cargar eventos",
+        horaInicio: "",
+        enlaceAudiencia: ""
+      }]);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredEvents = events.filter(event => {
-    try {
-      if (!event.fecha) {
-        console.warn('Evento sin fecha:', event);
-        return false;
-      }
-
-      // Usar la fecha ISO directamente
-      const eventDate = startOfDay(new Date(event.fecha));
-      const selectedDateStart = startOfDay(selectedDate);
+  const filterEventsByDate = (events: Event[], selectedDate: Date) => {
+    // Convertir la fecha seleccionada a formato YYYY-MM-DD
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    const selectedDateStr = `${year}-${month}-${day}`;
+    
+    console.log('=== FILTRANDO EVENTOS ===');
+    console.log('Fecha seleccionada:', selectedDateStr);
+    console.log('Eventos disponibles:', events.map(e => ({
+      actividad: e.actividad,
+      fecha: e.fecha
+    })));
+    
+    const filteredEvents = events.filter(event => {
+      if (!event.fecha) return false;
       
-      console.log('Comparando fechas:', {
-        evento: format(eventDate, 'yyyy-MM-dd'),
-        seleccionada: format(selectedDateStart, 'yyyy-MM-dd'),
-        coincide: isEqual(eventDate, selectedDateStart)
+      // Extraer solo la fecha del evento (puede venir con hora)
+      const eventDate = event.fecha.split(' ')[0];
+      const matches = eventDate === selectedDateStr;
+      
+      console.log('Comparando:', {
+        actividad: event.actividad,
+        fechaEvento: eventDate,
+        fechaBuscada: selectedDateStr,
+        coincide: matches
       });
+      
+      return matches;
+    });
+    
+    console.log('Eventos encontrados:', filteredEvents);
+    return filteredEvents;
+  };
 
-      return isEqual(eventDate, selectedDateStart);
-    } catch (error) {
-      console.error('Error al comparar fechas:', error, 'para el evento:', event);
-      return false;
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
+  useEffect(() => {
+    if (events.length > 0) {
+      const filtered = filterEventsByDate(events, selectedDate);
+      setFilteredEvents(filtered);
     }
-  });
+  }, [events, selectedDate]);
+
+  const handleDateChange = (date: Date) => {
+    console.log('Nueva fecha seleccionada:', {
+      fecha: date.toISOString(),
+      componentes: {
+        año: date.getFullYear(),
+        mes: date.getMonth() + 1,
+        día: date.getDate()
+      }
+    });
+    
+    setSelectedDate(date);
+    const filtered = filterEventsByDate(events, date);
+    setFilteredEvents(filtered);
+  };
 
   console.log('Eventos filtrados para la fecha seleccionada:', {
     fecha: format(selectedDate, 'yyyy-MM-dd'),
+    total: events.length,
+    filtrados: filteredEvents.length,
     eventos: filteredEvents
   });
 
@@ -86,10 +133,7 @@ const EventsPage: React.FC = () => {
         <div className="calendar-container">
           <EventCalendar
             events={events}
-            onDateSelect={(date) => {
-              console.log('Nueva fecha seleccionada:', format(date, 'yyyy-MM-dd'));
-              setSelectedDate(date);
-            }}
+            onDateSelect={handleDateChange}
             selectedDate={selectedDate}
           />
         </div>

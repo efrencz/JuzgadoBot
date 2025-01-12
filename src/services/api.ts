@@ -1,118 +1,121 @@
+import axios from 'axios';
 import { API_CONFIG } from '../config/constants';
 import { APIError, handleAPIError } from '../utils/errorHandling';
 
 export let currentChatQueries: string[] = [];
+let currentSessionId: string | null = null;
 
-const fetchWithTimeout = async (
-  url: string,
-  options: RequestInit & { timeout?: number } = {}
-): Promise<Response> => {
-  const { timeout = API_CONFIG.TIMEOUT } = options;
+const generateSessionId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+};
 
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
+const getOrCreateSessionId = () => {
+  if (!currentSessionId) {
+    currentSessionId = generateSessionId();
+  }
+  return currentSessionId;
+};
 
+// Configurar axios
+const api = axios.create({
+  baseURL: API_CONFIG.BASE_URL,
+  timeout: API_CONFIG.TIMEOUT,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  }
+});
+
+// Función para probar la conexión
+export const testConnection = async () => {
   try {
-    console.log(`Fetching URL: ${url}`);
-    const fetchOptions = {
-      ...options,
-      mode: 'cors' as RequestMode,
-      signal: controller.signal,
-      credentials: 'include' as RequestCredentials,
-    };
-    console.log('Fetch options:', JSON.stringify(fetchOptions, (key, value) => {
-      if (key === 'signal') return '[AbortSignal]';
-      return value;
-    }, 2));
-
-    const response = await fetch(url, fetchOptions);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    clearTimeout(id);
-    return response;
+    console.log('Probando conexión con el servidor...');
+    const response = await api.get('/test');
+    console.log('Respuesta del servidor:', response.data);
+    return response.data;
   } catch (error) {
-    clearTimeout(id);
-    console.error('Fetch error details:', error);
+    console.error('Error al probar la conexión:', error);
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.error || error.message);
+    }
     throw error;
   }
 };
 
 export const sendQuery = async (query: string, option: string, userId: string, phoneNumber: string): Promise<any> => {
   try {
-    console.log('sendQuery called with:', JSON.stringify({
+    console.log('sendQuery called with:', {
       query,
       option,
       userId,
       phoneNumber
-    }, null, 2));
+    });
     
     currentChatQueries.push(query);
-    console.log('Current chat queries:', JSON.stringify(currentChatQueries, null, 2));
+    console.log('Current chat queries:', currentChatQueries);
 
-    const response = await fetchWithTimeout(`${API_CONFIG.BASE_URL}/auth/query`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        query,
-        option,
-        userName: userId,
-        userPhone: phoneNumber
-      })
+    const sessionId = getOrCreateSessionId();
+    const response = await api.post('/chat/query', {
+      query,
+      option,
+      userName: userId,
+      userPhone: phoneNumber,
+      sessionId
     });
 
-    const data = await response.json();
-    return data;
+    return response.data;
   } catch (error) {
     console.error('Send query error:', error);
+    if (axios.isAxiosError(error)) {
+      throw handleAPIError(new Error(error.response?.data?.error || error.message));
+    }
     throw handleAPIError(error);
   }
 };
 
 export const resetChat = () => {
   currentChatQueries = [];
+  currentSessionId = null;
 };
 
 export const endChat = async (userId: string, phoneNumber: string): Promise<void> => {
   try {
-    const response = await fetchWithTimeout(`${API_CONFIG.BASE_URL}/auth/end-chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        userName: userId,
-        userPhone: phoneNumber
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to end chat');
+    if (currentChatQueries.length === 0) {
+      console.log('No hay consultas para guardar');
+      return;
     }
 
-    resetChat();
+    const sessionId = currentSessionId;
+    const response = await api.post('/chat/end', {
+      userName: userId,
+      userPhone: phoneNumber,
+      sessionId,
+      queries: currentChatQueries,
+      responses: [] // Aquí deberías incluir las respuestas del chat
+    });
+
+    console.log('Chat ended:', response.data);
+    currentSessionId = null;
+    currentChatQueries = [];
   } catch (error) {
-    console.error('End chat error:', error);
+    console.error('Error ending chat:', error);
+    if (axios.isAxiosError(error)) {
+      throw handleAPIError(new Error(error.response?.data?.error || error.message));
+    }
     throw handleAPIError(error);
   }
 };
 
 export const getEvents = async () => {
   try {
-    const response = await fetchWithTimeout(`${API_CONFIG.BASE_URL}/events`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-
-    return await response.json();
+    const response = await api.get('/events');
+    console.log('Eventos recibidos del servidor:', response.data);
+    return response.data;
   } catch (error) {
     console.error('Error fetching events:', error);
-    throw error;
+    if (axios.isAxiosError(error)) {
+      throw handleAPIError(new Error(error.response?.data?.error || error.message));
+    }
+    throw handleAPIError(error);
   }
 };

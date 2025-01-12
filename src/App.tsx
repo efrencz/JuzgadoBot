@@ -1,11 +1,10 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { sendQuery, testConnection } from './api';
 import { ChatMessage as ChatMessageType } from './types';
 import { ChatMessage } from './components/ChatMessage';
-import { ServerStatus } from './components/ServerStatus';
-import { sendQuery, endChat, resetChat } from './services/api';
 import { APIError } from './utils/errorHandling';
 import { API_CONFIG } from './config/constants';
-import { Calendar } from 'lucide-react';
+import { Calendar, Search, FileText, MessageSquare, LogOut, Send, Bot, User, MessageCircle } from 'lucide-react';
 import EventsPage from './pages/EventsPage';
 
 enum QueryStage {
@@ -17,418 +16,487 @@ enum QueryStage {
   ShowingResults = 5
 }
 
+interface Message {
+  role: 'user' | 'bot';
+  content: string | object;
+}
+
 export const App: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
+  const [input, setInput] = useState('');
+  const [userName, setUserName] = useState('');
+  const [userPhone, setUserPhone] = useState('');
   const [queryStage, setQueryStage] = useState<QueryStage>(QueryStage.AskingName);
-  const [userName, setUserName] = useState<string>('');
-  const [userPhone, setUserPhone] = useState<string>('');
-  const [queryResult, setQueryResult] = useState<string>('');
   const [selectedQueryType, setSelectedQueryType] = useState<'radicado' | 'folio' | null>(null);
-  const [serverStatus, setServerStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [serverStatus, setServerStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
   const [showEventsPage, setShowEventsPage] = useState(false);
-  const [currentInput, setCurrentInput] = useState('');
-
-  // Ref para el auto-scroll
+  const [showLegalModal, setShowLegalModal] = useState(true);
+  const [accepted, setAccepted] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isResetting = useRef(false);
 
-  // Use a ref to track if welcome message has been sent
-  const welcomeMessageSent = useRef(false);
-
-  // Función para agregar mensajes al chat
-  const addMessage = useCallback((role: 'user' | 'bot', content: string) => {
-    const message = { role, content };
-    console.log('Adding message:', JSON.stringify(message, null, 2));
-    setMessages(prev => [...prev, message]);
-  }, []);
-
-  // Verificar estado del servidor
-  useEffect(() => {
-    fetch(`${API_CONFIG.BASE_URL}/test`)
-      .then(response => response.json())
-      .then(() => setServerStatus('connected'))
-      .catch(() => setServerStatus('error'));
-  }, []);
-
-  // Mostrar mensaje de bienvenida inicial
-  useEffect(() => {
-    if (messages.length === 0 && serverStatus === 'connected') {
-      addMessage('bot', '¡Hola! 👋 Bienvenido al Centro de Consulta de Expedientes.\nPor favor, ¿podrías decirme tu nombre?');
-    }
-  }, [messages.length, serverStatus, addMessage]);
-
-  // Scroll al último mensaje
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const resetChat = useCallback(() => {
-    setMessages([]);
-    setQueryStage(QueryStage.AskingName);
-    setUserName('');
-    setUserPhone('');
-    setSelectedQueryType(null);
-  }, []);
-
-  const handleEndChat = useCallback(async () => {
-    try {
-      if (userName && userPhone) {
-        await endChat(userName, userPhone);
-      }
-      addMessage('bot', 'Gracias por usar nuestro servicio. ¡Hasta pronto!');
-      setTimeout(() => {
-        resetChat();
-      }, 2000);
-    } catch (error) {
-      console.error('Error ending chat:', error);
-      addMessage('bot', 'Hubo un error al finalizar el chat. Por favor, intenta nuevamente.');
-    }
-  }, [userName, userPhone, addMessage, resetChat]);
-
-  const handleQueryTypeSelection = useCallback((type: 'radicado' | 'folio' | 'whatsapp' | 'end') => {
-    if (type === 'end') {
-      handleEndChat();
-    } else if (type === 'whatsapp') {
-      window.open('https://wa.me/573187423430', '_blank');
-      handleEndChat();
-    } else {
-      setSelectedQueryType(type);
-      const message = type === 'radicado'
-        ? 'Por favor, ingresa el número de radicado que deseas consultar:'
-        : 'Por favor, ingresa el número de folio de matrícula que deseas consultar:';
-      addMessage('bot', message);
-      setQueryStage(type === 'radicado' ? QueryStage.EnteringRadicado : QueryStage.EnteringFolio);
-    }
-  }, [addMessage, handleEndChat]);
-
-  const showOptions = useCallback(() => {
-    addMessage('bot', `¿Qué información deseas consultar, ${userName}?\n\n` +
-      '1. Consultar por Radicado\n' +
-      '2. Consultar por Folio de Matrícula\n' +
-      '3. Comunicarse con un Servidor Judicial\n' +
-      '4. Terminar chat');
-    setQueryStage(QueryStage.ChoosingQueryType);
-  }, [userName, addMessage]);
-
-  const handleNameInput = useCallback((message: string) => {
-    const trimmedName = message.trim();
-    if (trimmedName.length === 0) {
-      addMessage('bot', 'Por favor, ingresa un nombre válido.');
-      return;
-    }
-    setUserName(trimmedName);
-    console.log('Setting user name:', trimmedName);
-    addMessage('bot', `Mucho gusto ${trimmedName}, ¿podrías proporcionarme tu número de teléfono de contacto? (Debe ser un número de 10 dígitos)`);
-    setQueryStage(QueryStage.AskingPhone);
-  }, [addMessage]);
-
-  const handlePhoneInput = useCallback((message: string) => {
-    const trimmedPhone = message.trim();
-    if (!validatePhoneNumber(trimmedPhone)) {
-      addMessage('bot', 'Por favor, ingresa un número de teléfono válido que contenga 10 dígitos numéricos.\nPor ejemplo: 3001234567');
-      return;
-    }
-    setUserPhone(trimmedPhone);
-    console.log('Setting user phone:', trimmedPhone);
-    setQueryStage(QueryStage.ChoosingQueryType);
-    addMessage('bot', `Gracias por proporcionar tu número de teléfono: ${trimmedPhone}`);
-    setTimeout(() => {
-      showOptions();
-    }, 500);
-  }, [addMessage, showOptions]);
-
-  const handleRadicadoInput = useCallback(async (message: string) => {
-    try {
-      console.log('Submitting radicado query with user info:', { userName, userPhone });
-      const response = await sendQuery(message, '1', userName, userPhone);
-      handleQueryResponse(response);
-    } catch (error) {
-      console.error('Error submitting query:', error);
-      addMessage('bot', 'Lo siento, hubo un error al procesar tu consulta. Por favor, intenta de nuevo.');
-      showOptions();
-    }
-  }, [userName, userPhone, addMessage, showOptions]);
-
-  const handleFolioInput = useCallback(async (message: string) => {
-    try {
-      const trimmedFolio = message.trim();
-      if (!validateFolioFormat(trimmedFolio)) {
-        addMessage('bot', 'Por favor, ingresa un número de Folio de Matrícula válido en alguno de estos formatos:\n000-00, 000-000, 000-0000, 000-00000, 000-000000\nPor ejemplo: 123-45 o 123-45678');
-        return;
-      }
-      console.log('Submitting folio query with user info:', { userName, userPhone });
-      const response = await sendQuery(trimmedFolio, '2', userName, userPhone);
-      handleQueryResponse(response);
-    } catch (error) {
-      console.error('Error submitting query:', error);
-      addMessage('bot', 'Lo siento, hubo un error al procesar tu consulta. Por favor, intenta nuevamente.');
-      showOptions();
-    }
-  }, [userName, userPhone, addMessage, showOptions]);
-
-  const handleMessage = useCallback(async (message: string) => {
-    if (isLoading) return;
-
-    switch (queryStage) {
-      case QueryStage.AskingName:
-        handleNameInput(message);
-        break;
-
-      case QueryStage.AskingPhone:
-        handlePhoneInput(message);
-        break;
-
-      case QueryStage.ChoosingQueryType:
-        if (message === '1') {
-          handleQueryTypeSelection('radicado');
-        } else if (message === '2') {
-          handleQueryTypeSelection('folio');
-        } else if (message === '3') {
-          handleQueryTypeSelection('whatsapp');
-        } else if (message === '4') {
-          handleQueryTypeSelection('end');
-        } else {
-          addMessage('bot', `${userName}, por favor selecciona una opción válida:\n\n1. Consultar por Radicado\n2. Consultar por Folio de Matrícula\n3. Comunicarse con un Servidor Judicial\n4. Terminar chat`);
-        }
-        break;
-
-      case QueryStage.EnteringRadicado:
-        handleRadicadoInput(message);
-        break;
-
-      case QueryStage.EnteringFolio:
-        handleFolioInput(message);
-        break;
-
-      default:
-        console.error('Estado no manejado:', queryStage);
-    }
-  }, [
-    queryStage,
-    isLoading,
-    handleNameInput,
-    handlePhoneInput,
-    handleQueryTypeSelection,
-    handleRadicadoInput,
-    handleFolioInput,
-    userName,
-    addMessage
-  ]);
-
-  const handleQueryResponse = (response: any) => {
-    const formattedResponse = {
-      radicado: response.radicado || 'No disponible',
-      predio: response.predio || 'No disponible',
-      municipio: response.municipio || 'No disponible',
-      solicitante: response.solicitante || 'No disponible',
-      opositor: response.opositor || 'No disponible',
-      estado: response.estado || 'No disponible',
-      ultimaActuacion: response.ultimaActuacion || 'No disponible',
-      fechaProvidencia: response.fechaProvidencia || 'No disponible',
-      fechaNotificacion: response.fechaNotificacion || 'No disponible',
-      enlace: response.enlace || '',
-    };
-
-    // Crear un mensaje formateado más amigable
-    const messageLines = [
-      '📄 Información del Radicado:',
-      `• Número: ${formattedResponse.radicado}`,
-      `• Predio: ${formattedResponse.predio}`,
-      `• Municipio: ${formattedResponse.municipio}`,
-      '',
-      '👥 Participantes:',
-      `• Solicitante: ${formattedResponse.solicitante}`,
-      `• Opositor: ${formattedResponse.opositor}`,
-      '',
-      '📊 Estado del Proceso:',
-      `• Estado actual: ${formattedResponse.estado}`,
-      `• Última actuación: ${formattedResponse.ultimaActuacion}`,
-      `• Fecha providencia: ${formattedResponse.fechaProvidencia}`,
-      `• Fecha notificación: ${formattedResponse.fechaNotificacion}`,
-    ];
-
-    // Agregar el enlace solo si está disponible, ahora con formato HTML
-    if (formattedResponse.enlace) {
-      messageLines.push('', `🔗 <a href="${formattedResponse.enlace}" target="_blank" rel="noopener noreferrer" class="document-link">Ver documento</a>`);
-    }
-
-    addMessage('bot', messageLines.join('\n'));
-    setQueryStage(QueryStage.ChoosingQueryType);
-    setTimeout(() => {
-      showOptions();
-    }, 1000);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleQuerySubmit = useCallback(async (queryText: string) => {
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  useEffect(() => {
+    const checkConnection = async () => {
+      const isConnected = await testConnection();
+      if (!isConnected) {
+        setError('No se pudo conectar con el servidor. Por favor, inténtelo más tarde.');
+      } else {
+        setServerStatus('connected');
+      }
+    };
+    checkConnection();
+  }, []);
+
+  useEffect(() => {
+    if (serverStatus === 'connected' && messages.length === 0 && queryStage === QueryStage.AskingName && !isResetting.current) {
+      addMessage({
+        role: 'bot',
+        content: '👋 ¡Hola! Soy el asistente virtual del Juzgado. Para empezar, ¿podrías decirme tu nombre? 😊'
+      });
+    }
+  }, [serverStatus, messages.length, queryStage]);
+
+  const addMessage = (message: Message) => {
+    console.log('Adding message:', message);
+    setMessages(prev => [...prev, message]);
+  };
+
+  const validateRadicado = (radicado: string): boolean => {
+    // Formato esperado: 1234-12345
+    const radicadoRegex = /^\d{4}-\d{5}$/;
+    return radicadoRegex.test(radicado);
+  };
+
+  const validateFolio = (folio: string): boolean => {
+    // Formato esperado: XXX-X hasta XXX-XXXXXX (3 dígitos, guion, 1-6 dígitos)
+    const folioRegex = /^\d{3}-\d{1,6}$/;
+    return folioRegex.test(folio);
+  };
+
+  const handleSendMessage = async () => {
+    if (!input.trim()) return;
+
+    // Validación específica para el número de teléfono
+    if (queryStage === QueryStage.AskingPhone) {
+      const phoneRegex = /^\d{10}$/;
+      if (!phoneRegex.test(input.trim())) {
+        addMessage({ 
+          role: 'bot', 
+          content: 'El número de teléfono debe tener exactamente 10 dígitos. Por favor, intenta nuevamente.' 
+        });
+        return;
+      }
+    }
+
+    // Validación específica para radicado y folio
+    if (queryStage === QueryStage.EnteringRadicado || queryStage === QueryStage.EnteringFolio) {
+      const userInput = input.trim();
+      
+      if (selectedQueryType === 'radicado' && !validateRadicado(userInput)) {
+        addMessage({
+          role: 'bot',
+          content: 'El formato del radicado debe ser: 1234-12345 (4 dígitos, guion, 5 dígitos). Por favor, intenta nuevamente.'
+        });
+        return;
+      }
+      
+      if (selectedQueryType === 'folio' && !validateFolio(userInput)) {
+        addMessage({
+          role: 'bot',
+          content: 'El formato del folio debe ser: XXX-X hasta XXX-XXXXXX (3 dígitos, guion, entre 1 y 6 dígitos). Por ejemplo: 123-1, 123-12, 123-123, etc. Por favor, intenta nuevamente.'
+        });
+        return;
+      }
+    }
+
+    const userMessage = input.trim();
+    setInput('');
+    addMessage({ role: 'user', content: userMessage });
+
     try {
       setIsLoading(true);
-      const option = selectedQueryType === 'radicado' ? '1' : '2';
-      const response = await sendQuery(queryText, option);
-      setQueryResult(response.response);
-      addMessage('bot', response.response);
-      showOptions();
-    } catch (error) {
-      console.error('Query submission error:', error);
-      addMessage('bot', 'Lo siento, hubo un error al procesar tu consulta. Por favor, intenta nuevamente.');
-      showOptions();
+      setError(null);
+
+      if (queryStage === QueryStage.AskingName) {
+        setUserName(userMessage);
+        addMessage({
+          role: 'bot',
+          content: `👋 ¡Hola **${userMessage}**! Me alegro de conocerte. ¿Podrías proporcionarme tu número de teléfono de contacto? 📱`
+        });
+        setQueryStage(QueryStage.AskingPhone);
+      } else if (queryStage === QueryStage.AskingPhone) {
+        setUserPhone(userMessage);
+        addMessage({
+          role: 'bot',
+          content: `Gracias por la información. ¿En qué puedo ayudarte hoy? 🤝`
+        });
+        setQueryStage(QueryStage.ChoosingQueryType);
+      } else if (queryStage === QueryStage.EnteringRadicado || queryStage === QueryStage.EnteringFolio) {
+        const response = await sendQuery({
+          query: userMessage,
+          option: selectedQueryType === 'radicado' ? 'radicado' : 'predio',
+          userName,
+          userPhone
+        });
+
+        if (response.error) {
+          throw new Error(response.error);
+        }
+
+        // Mostrar la respuesta formateada
+        const formattedResponse = formatResponse(response, selectedQueryType || '');
+        console.log('Respuesta formateada:', formattedResponse);
+        
+        addMessage({
+          role: 'bot',
+          content: formattedResponse
+        });
+        
+        // Después de mostrar la respuesta, preguntar qué más desea hacer
+        setTimeout(() => {
+          setQueryStage(QueryStage.ChoosingQueryType);
+          addMessage({
+            role: 'bot',
+            content: '¿Hay algo más en lo que pueda ayudarte? 😊'
+          });
+        }, 1000);
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      setError(err instanceof Error ? err.message : 'Error al procesar la consulta');
+      addMessage({
+        role: 'bot',
+        content: `❌ **Error:** ${err instanceof Error ? err.message : 'Error al procesar la consulta'}`
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [selectedQueryType, showOptions, addMessage]);
+  };
 
-  const toggleEventsView = () => {
-    setShowEventsPage(!showEventsPage);
+  const formatResponse = (response: any, queryType: string) => {
+    if (!response || !response.data) {
+      return '❌ No se encontraron datos para la consulta.';
+    }
+
+    const data = response.data;
+    
+    // Si es un array de resultados
+    if (Array.isArray(data)) {
+      if (data.length === 0) {
+        return '❌ No se encontraron datos para la consulta.';
+      }
+
+      // Devolver el array de objetos directamente
+      return data;
+    }
+
+    // Si es un objeto individual
+    if (typeof data === 'object') {
+      // Devolver el objeto directamente
+      return data;
+    }
+
+    // Si es un mensaje de texto
+    if (typeof data === 'string') {
+      return data;
+    }
+
+    return '❌ Formato de respuesta no reconocido.';
+  };
+
+  const handleQueryTypeSelection = (type: 'radicado' | 'folio') => {
+    setSelectedQueryType(type);
+    setQueryStage(type === 'radicado' ? QueryStage.EnteringRadicado : QueryStage.EnteringFolio);
+    addMessage({
+      role: 'bot',
+      content: type === 'radicado' 
+        ? '📝 Por favor, ingresa el número de radicado que deseas consultar:' 
+        : '🔍 Por favor, ingresa el número de folio de matrícula que deseas consultar:'
+    });
+  };
+
+  const handleContactSupport = () => {
+    window.open('https://wa.me/573102383749', '_blank');
+    addMessage({
+      role: 'bot',
+      content: '👋 Gracias por usar nuestro servicio. ¡Hasta pronto!'
+    });
+    setTimeout(() => {
+      setMessages([]);
+      setQueryStage(QueryStage.AskingName);
+      setUserName('');
+      setUserPhone('');
+      setSelectedQueryType(null);
+    }, 2000);
+  };
+
+  const handleReset = () => {
+    isResetting.current = true;
+    addMessage({
+      role: 'bot',
+      content: '👋 Gracias por usar nuestro servicio. ¡Hasta pronto!'
+    });
+    setTimeout(() => {
+      setMessages([]);
+      setQueryStage(QueryStage.AskingName);
+      setUserName('');
+      setUserPhone('');
+      setSelectedQueryType(null);
+      // Añadir el mensaje inicial después de limpiar
+      setTimeout(() => {
+        addMessage({
+          role: 'bot',
+          content: '👋 ¡Hola! Soy el asistente virtual del Juzgado. Para empezar, ¿podrías decirme tu nombre? 😊'
+        });
+        isResetting.current = false;
+      }, 100);
+    }, 2000);
+  };
+
+  const toggleView = () => {
+    setShowCalendar(!showCalendar);
+    // Si estamos cambiando a calendario, resetear el chat
+    if (!showCalendar) {
+      setMessages([]);
+      setQueryStage(QueryStage.AskingName);
+      setSelectedQueryType(null);
+      setInput('');
+    }
   };
 
   const getPlaceholderText = () => {
     switch (queryStage) {
       case QueryStage.AskingName:
-        return 'Ingresa tu nombre';
+        return "👋 Ingresa tu nombre...";
       case QueryStage.AskingPhone:
-        return 'Ingresa tu número de teléfono';
+        return "📱 Ingresa tu número de teléfono...";
       case QueryStage.EnteringRadicado:
-        return 'Ingresa el número de radicado';
+        return "📝 Ingresa el número de radicado...";
       case QueryStage.EnteringFolio:
-        return 'Ingresa el número de Folio de Matrícula';
+        return "🔍 Ingresa el número de folio...";
       default:
-        return 'Ingresa tu mensaje';
+        return "";
     }
   };
 
-  const handleSendMessageWithInput = () => {
-    handleMessage(currentInput);
-    setCurrentInput('');
-  };
+  if (!accepted) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg max-w-2xl w-full p-6 shadow-xl">
+          <h2 className="text-2xl font-bold mb-4">Aviso Legal y Tratamiento de Datos Personales</h2>
+          
+          <div className="prose prose-sm max-h-96 overflow-y-auto mb-6">
+            <p className="mb-4">
+              <strong>Aviso Importante:</strong> Esta herramienta es únicamente un apoyo informativo 
+              y NO reemplaza ni sustituye los canales oficiales proporcionados por la Rama Judicial 
+              de Colombia para la consulta de procesos judiciales.
+            </p>
 
-  const validatePhoneNumber = (phone: string): boolean => {
-    // Eliminar espacios y guiones si los hay
-    const cleanPhone = phone.replace(/[\s-]/g, '');
-    // Verificar que solo contenga números y tenga exactamente 10 dígitos
-    return /^\d{10}$/.test(cleanPhone);
-  };
+            <p className="mb-4">
+              Para consultas oficiales, por favor utilice los canales establecidos por la 
+              Rama Judicial en <a href="https://www.ramajudicial.gov.co" target="_blank" rel="noopener noreferrer" 
+              className="text-blue-600 hover:text-blue-800">www.ramajudicial.gov.co</a>
+            </p>
 
-  const validateFolioFormat = (folio: string): boolean => {
-    // Formato: 000-00, 000-000, 000-0000, 000-00000, 000-000000
-    const folioRegex = /^\d{3}-\d{2,6}$/;
-    return folioRegex.test(folio);
-  };
+            <p className="mb-4">
+              <strong>Tratamiento de Datos Personales:</strong> De acuerdo con la Ley 1581 de 2012 
+              (Ley de Protección de Datos Personales) y el Decreto 1377 de 2013, al utilizar esta 
+              herramienta usted acepta que los datos personales suministrados sean tratados para:
+            </p>
+
+            <ul className="list-disc pl-6 mb-4">
+              <li>Facilitar la consulta de información procesal</li>
+              <li>Mantener un registro de las consultas realizadas</li>
+              <li>Mejorar la calidad del servicio</li>
+            </ul>
+
+            <p className="mb-4">
+              Sus datos serán tratados de acuerdo con los principios de legalidad, finalidad, 
+              libertad, veracidad, transparencia, acceso y circulación restringida, seguridad 
+              y confidencialidad establecidos en la ley.
+            </p>
+
+            <p>
+              Como titular de los datos, usted tiene derecho a conocer, actualizar, rectificar 
+              y solicitar la supresión de sus datos personales según lo establecido en la 
+              Ley 1581 de 2012.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-4">
+            <button
+              onClick={() => window.location.href = 'https://www.ramajudicial.gov.co'}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+            >
+              Ir a Rama Judicial
+            </button>
+            <button
+              onClick={() => {
+                setAccepted(true);
+                setShowLegalModal(false);
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Aceptar y Continuar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100 max-w-full overflow-hidden">
-      <header className="bg-gradient-to-l from-blue-600 to-white p-4 shadow-lg">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex-1">
-            <img 
-              src="/src/assets/logo.png" 
-              alt="Logo" 
-              className="h-12 w-auto"
-            />
-          </div>
-          <div className="flex-1 text-center max-w-3xl mx-auto px-4">
-            <h1 className="text-lg sm:text-xl md:text-2xl font-extrabold tracking-tight text-blue-800 leading-tight">
-              <span className="md:hidden">Asistente Virtual</span>
-              <span className="hidden md:inline">
-                Asistente Virtual Juzgado 01 Civil del Circuito Especializado en Restitución de Tierras de El Carmen de Bolívar
-              </span>
-            </h1>
-          </div>
-          <div className="flex-1 flex justify-end">
-            <button
-              onClick={toggleEventsView}
-              className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-blue-900 rounded-lg hover:bg-yellow-400 transition-colors font-semibold"
-            >
-              <Calendar size={20} />
-              <span className="hidden sm:inline">Eventos</span>
-            </button>
+    <div className="flex flex-col min-h-screen bg-gray-100">
+      <header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+            <div className="flex-shrink-0">
+              <img 
+                src="/src/assets/logo.png" 
+                alt="Logo" 
+                className="h-12 w-auto"
+              />
+            </div>
+            <div className="flex-grow text-center mx-4">
+              <h1 className="text-xl font-bold">
+                Asistente Virtual Judicial
+              </h1>
+              <p className="text-sm opacity-90">
+                Juzgado 01 Civil del Circuito Especializado en Restitución de Tierras
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <button
+                onClick={toggleView}
+                className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-blue-900 rounded-lg hover:bg-yellow-400 transition-colors font-medium"
+              >
+                {showCalendar ? <MessageCircle size={20} /> : <Calendar size={20} />}
+                <span>{showCalendar ? 'CHAT' : 'EVENTOS'}</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      {showEventsPage ? (
-        <div className="flex-1 overflow-y-auto">
+      {showCalendar ? (
+        <div className="flex-1 overflow-hidden">
           <EventsPage />
         </div>
       ) : (
-        <>
-          <div className="flex-1 overflow-y-auto space-y-4 p-2 sm:p-4 max-w-full">
-            <div className="max-w-full mx-auto">
-              {messages.map((message, index) => (
-                <ChatMessage key={index} message={message} />
-              ))}
-              {isLoading && (
-                <div className="text-center text-gray-500 italic p-4">
-                  Cargando...
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
-
-          {/* Chat Input Section */}
-          <div className="p-4 bg-white border-t">
-            <div className="container mx-auto max-w-4xl">
-              {queryStage === QueryStage.ChoosingQueryType && (
-                <div className="flex flex-col sm:flex-row gap-2 mb-4">
-                  <button
-                    onClick={() => handleQueryTypeSelection('radicado')}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                  >
-                    Consultar por Radicado
-                  </button>
-                  <button
-                    onClick={() => handleQueryTypeSelection('folio')}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                  >
-                    Consultar por Folio
-                  </button>
-                  <button
-                    onClick={() => handleQueryTypeSelection('whatsapp')}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                  >
-                    Comunicarse con un Servidor Judicial
-                  </button>
-                  <button
-                    onClick={() => handleQueryTypeSelection('end')}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                  >
-                    Terminar chat
-                  </button>
-                </div>
-              )}
-              
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={currentInput}
-                  onChange={(e) => setCurrentInput(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessageWithInput();
-                    }
-                  }}
-                  placeholder={getPlaceholderText()}
-                  className="flex-1 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={isLoading || (queryStage === QueryStage.ChoosingQueryType)}
-                />
-                <button
-                  onClick={handleSendMessageWithInput}
-                  disabled={isLoading || !currentInput.trim() || (queryStage === QueryStage.ChoosingQueryType)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Enviar
-                </button>
+        <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 md:px-6 lg:px-8">
+          <div className="flex-1 flex flex-col bg-white shadow-lg my-4 rounded-lg overflow-hidden">
+            <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4">
+              <div className="space-y-4">
+                {messages.map((message, index) => (
+                  <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    {message.role === 'bot' && (
+                      <div className="flex-shrink-0 mr-3">
+                        <Bot size={24} className="text-blue-600" />
+                      </div>
+                    )}
+                    <div
+                      className={`max-w-[90%] md:max-w-[80%] p-3 md:p-4 rounded-lg shadow ${
+                        message.role === 'user'
+                          ? 'bg-blue-600 text-white rounded-br-none'
+                          : 'bg-gray-100 text-gray-800 rounded-bl-none'
+                      }`}
+                    >
+                      {typeof message.content === 'string' ? (
+                        <div 
+                          className="prose prose-sm max-w-none break-words"
+                          dangerouslySetInnerHTML={{ 
+                            __html: message.content
+                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                              .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-blue-600 hover:text-blue-800 underline">$1</a>')
+                          }}
+                        />
+                      ) : (
+                        <ChatMessage message={message} />
+                      )}
+                    </div>
+                    {message.role === 'user' && (
+                      <div className="flex-shrink-0 ml-3">
+                        <User size={24} className="text-gray-600" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
               </div>
             </div>
-          </div>
-        </>
-      )}
 
-      <ServerStatus status={serverStatus} />
+            {queryStage === QueryStage.ChoosingQueryType && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border-t bg-gray-50">
+                <button
+                  onClick={() => handleQueryTypeSelection('radicado')}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <FileText size={20} />
+                  Consultar por Radicado
+                </button>
+                <button
+                  onClick={() => handleQueryTypeSelection('folio')}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <Search size={20} />
+                  Consultar por Folio
+                </button>
+                <button
+                  onClick={handleContactSupport}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors md:col-span-2"
+                >
+                  <MessageSquare size={20} />
+                  Chatear con un Servidor Judicial
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors md:col-span-2"
+                >
+                  <LogOut size={20} />
+                  Terminar Chat
+                </button>
+              </div>
+            )}
+
+            {queryStage !== QueryStage.ChoosingQueryType && (
+              <div className="p-4 border-t bg-gray-50">
+                <div className="flex space-x-4">
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    placeholder={getPlaceholderText()}
+                    className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={isLoading}
+                  />
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={isLoading || !input.trim()}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    <Send size={20} />
+                    <span className="hidden md:inline">Enviar</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+export default App;

@@ -1,6 +1,6 @@
 import React from 'react';
 import Calendar from 'react-calendar';
-import { format, parseISO, isEqual, startOfDay } from 'date-fns';
+import { format, parseISO, isEqual } from 'date-fns';
 import 'react-calendar/dist/Calendar.css';
 
 interface Event {
@@ -21,25 +21,30 @@ const EventCalendar: React.FC<EventCalendarProps> = ({ events, onDateSelect, sel
   const tileClassName = ({ date }: { date: Date }) => {
     const hasEvent = events.some(event => {
       try {
-        if (!event.fecha) {
-          console.warn('Evento sin fecha:', event);
-          return false;
-        }
+        if (!event.fecha) return false;
         
-        // La fecha ya viene en formato ISO, así que podemos usarla directamente
-        const eventDate = startOfDay(new Date(event.fecha));
-        const tileDate = startOfDay(date);
+        // Obtener solo la parte de la fecha del evento
+        const eventDate = event.fecha.split(' ')[0];
         
-        const result = isEqual(eventDate, tileDate);
-        if (result) {
-          console.log('Evento encontrado para la fecha:', {
-            fecha: event.fecha,
-            actividad: event.actividad
+        // Formatear la fecha del calendario
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const calendarDate = `${year}-${month}-${day}`;
+        
+        const matches = eventDate === calendarDate;
+        
+        if (matches) {
+          console.log('Evento encontrado:', {
+            actividad: event.actividad,
+            fecha: eventDate,
+            calendario: calendarDate
           });
         }
-        return result;
+        
+        return matches;
       } catch (error) {
-        console.error('Error al comparar fechas en tileClassName:', error, 'para el evento:', event);
+        console.error('Error al comparar fechas:', error);
         return false;
       }
     });
@@ -47,10 +52,24 @@ const EventCalendar: React.FC<EventCalendarProps> = ({ events, onDateSelect, sel
     return hasEvent ? 'has-event' : '';
   };
 
+  // Manejar el cambio de fecha
+  const handleDateChange = (date: Date) => {
+    console.log('Fecha seleccionada:', {
+      fecha: date.toISOString(),
+      componentes: {
+        año: date.getFullYear(),
+        mes: date.getMonth() + 1,
+        día: date.getDate()
+      }
+    });
+
+    onDateSelect(date);
+  };
+
   return (
     <div className="calendar-wrapper">
       <Calendar
-        onChange={onDateSelect}
+        onChange={handleDateChange}
         value={selectedDate}
         tileClassName={tileClassName}
         locale="es-ES"
