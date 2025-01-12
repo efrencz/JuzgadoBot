@@ -5,8 +5,15 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   base: '/',
-  optimizeDeps: {
-    exclude: ['lucide-react'],
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
   },
   server: {
     port: 5173,
@@ -18,27 +25,13 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
-    historyApiFallback: {
-      disableDotRule: true,
-      rewrites: [
-        { from: /^\/admin.*/, to: '/index.html' },
-        { from: /./, to: '/index.html' }
-      ]
-    }
   },
   preview: {
     port: process.env.PORT || 5173,
     strictPort: true,
-    host: true
-  },
-  build: {
-    outDir: 'dist',
-    assetsDir: 'assets',
-    sourcemap: false,
-    rollupOptions: {
-      output: {
-        manualChunks: undefined,
-      },
+    host: true,
+    headers: {
+      'Cache-Control': 'no-store',
     },
   },
   resolve: {
