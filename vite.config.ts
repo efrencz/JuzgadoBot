@@ -4,16 +4,8 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/',
-  build: {
-    outDir: 'dist',
-    assetsDir: 'assets',
-    sourcemap: false,
-    rollupOptions: {
-      output: {
-        manualChunks: undefined,
-      },
-    },
+  optimizeDeps: {
+    exclude: ['lucide-react'],
   },
   server: {
     port: 5173,
@@ -26,17 +18,15 @@ export default defineConfig({
       },
     },
   },
-  preview: {
-    port: process.env.PORT || 5173,
-    strictPort: true,
-    host: true,
-    headers: {
-      'Cache-Control': 'no-store',
-    },
-  },
-  resolve: {
-    alias: {
-      '@': '/src',
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+        },
+      },
     },
   },
 });

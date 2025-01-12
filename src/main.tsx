@@ -1,6 +1,6 @@
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { App } from './App.tsx';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -10,34 +10,21 @@ import './index.css';
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const [isVerifying, setIsVerifying] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const location = useLocation();
 
   useEffect(() => {
     const verifyAuth = async () => {
-      try {
-        const isValid = await AuthService.verifyToken();
-        setIsAuthenticated(isValid);
-      } catch (error) {
-        console.error('Error verifying token:', error);
-        setIsAuthenticated(false);
-      } finally {
-        setIsVerifying(false);
-      }
+      const isValid = await AuthService.verifyToken();
+      setIsAuthenticated(isValid);
+      setIsVerifying(false);
     };
     verifyAuth();
   }, []);
 
   if (isVerifying) {
-    return <div className="min-h-screen flex items-center justify-center">
-      <div className="text-xl">Verificando autenticación...</div>
-    </div>;
+    return <div>Verificando autenticación...</div>;
   }
 
-  return isAuthenticated ? (
-    children
-  ) : (
-    <Navigate to="/admin/login" state={{ from: location }} replace />
-  );
+  return isAuthenticated ? children : <Navigate to="/admin" />;
 };
 
 createRoot(document.getElementById('root')!).render(
@@ -45,14 +32,15 @@ createRoot(document.getElementById('root')!).render(
     <Router>
       <Routes>
         <Route path="/" element={<App />} />
-        <Route path="/admin/login" element={<Login />} />
-        <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
-        <Route path="/admin/dashboard" element={
-          <PrivateRoute>
-            <Dashboard />
-          </PrivateRoute>
-        } />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/admin" element={<Login />} />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <PrivateRoute>
+              <Dashboard />
+            </PrivateRoute>
+          }
+        />
       </Routes>
     </Router>
   </StrictMode>
