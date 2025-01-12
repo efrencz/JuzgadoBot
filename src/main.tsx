@@ -36,7 +36,7 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   return isAuthenticated ? (
     children
   ) : (
-    <Navigate to="/admin" state={{ from: location }} replace />
+    <Navigate to="/admin/login" state={{ from: location }} replace />
   );
 };
 
@@ -45,7 +45,8 @@ createRoot(document.getElementById('root')!).render(
     <Router>
       <Routes>
         <Route path="/" element={<App />} />
-        <Route path="/admin" element={<Login />} />
+        <Route path="/admin/login" element={<Login />} />
+        <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
         <Route path="/admin/dashboard" element={
           <PrivateRoute>
             <Dashboard />
