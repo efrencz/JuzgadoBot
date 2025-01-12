@@ -23,6 +23,21 @@ services:
         value: "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDB1esAyFSyaJa3\n2Ot3uAmLqSv/7oQuXWHKE18z87+QY8ugCcg/3E2u43bJeN/jO7ZRoRTNI8zRSX/C\n6DAAFWjDB5Ti+ICTcXWQdl8F7b+jjP0S0oCRfC11386geXSQpiEOGwU23klmr6fZ\nABR/tDOdt4vmQNYgHNWFSfSQsKU3mIMnRX2Vd1M7je7yLk8LZvk1F8ml/Jlab8ht\nfiHag+cx7pYQiZ5ov5fYPHOaCOYFYIbUK/anE17Yj8DfWq7oUq8P0vw/eOYMOAQE\n5ZIpmRREdRq7JZThGq0CutojpwvRzOxDtmfmyrryf7mY9QspS/WEtjZZXrSzjCjn\nC374p23VAgMBAAECggEAUFrem8nwtq8+AAQohU5hgqjEiUo3OMNUlUGXn4FmQjTk\nxrkXb0XkXGKGrXnzEpAAAnINHge/0mkuUj4QHBDEB8neUoNjRfxsmNFBjkMjxWje\nxw1F6En6zJlV3tfK12ZPYLoZ3Mek1TFvmzl5xgENvs3G7NKnEdPyPlnMzai1LUjO\nC61zYDaGlo/aH/K44FfY/3Z6wd/HdyRcLEgxP6AwbIPVj7j+/fAz/czUeNG1SXuZ\nKkxEXkkI8S2SP/OGjQgG5nunJO/SeVIDDBYMq4HF2u2yt4Ac9DvQxYHMvfCoOtd/\nPeCsZoIZggKth+sobR+ZYy67iGwSIKR+1YeY2pUv9wKBgQD4999WTIXBeb/C7FmZ\ntjtbjaui9PlSJWirwVyx8WGSFe+2tFMKLMnOxOXQWCDiZw4R+dHQRQCiRwvLgPn9\nlMV3tC/FPq7KxUUcO8AYp72zfI2Fb3zPs7UWSgoh+wE8PS5g7AKuH05ZUFq8jlUS\ntuW+tmbpHShi7pJWY4YQDFQsGwKBgQDHT2rWBbCw/0K4I85NdNyHMS6lskZs+CFz\nO4MVhUmMlpFsNIPRxQZ1pHVxTnI5lvk2f9V2g1dCyHRKC5s3hz+XxoEc7Mt84W8L\ntDyOyuSE8+ACvPHrPKnq0Ng8WOXAZVpgCrcBwxcWYzaglwoy0VUfCgxk2ggYk5S+\n1/tmzvuMzwKBgACy8XWUkWuRo/AwKbA8yr3fD/RNK8YHRNv2lwQI4XU/ioTAzNri\ndU6XTu3e0XjRQUDbqrMi/nV2LZpMqmcD2+oSH3A2VNdM5nzFzixDjEzMtLkDLx6G\nKqP9YTnnMoGwykiLYRaMD/RAPYD6BVMgIFUAvhk5c7uTX+XOMbopzrKxAoGBAL68\ns+NJ4sQgJLuQGJhro7gFSzzrFRanh2t9on7v5WkTluvUfeo8AWiIEJR0nD+cybZs\nM96M5u9UYmWSIeLMHgGjyF/kBQDnxJuQyvtkE7lgoho8s8+JaJr9blKiSI0M8aZD\n2stm5itYmyioIuxrBGkF9sJ1HZZXddwFWeQTZQxlAoGBAIeoGUHs81RQOS2nQNgA\nBUd8J7Fp3Lro1VYOdMD6hQ0C77qOMrZ2jNXHUnBo4dfGmffbSXPdsH+R5JK0/2Py\n5bu1GeS2RgSEEyHEIVSdqzDME/7FBm1IAyROB4ha/W223mfvW3mWy3OOKIcmSEID\nGAVDIGWg6Ea03PgvDxzScPWu\n-----END PRIVATE KEY-----\n"
         sync: false
   - type: web
+    name: frontend
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: true
+    envVars:
+      - key: NODE_VERSION
+        value: 18.17.0
+      - key: VITE_API_URL
+        value: https://juzgadobot.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+  - type: web
     name: juzgadobot-frontend
     env: node
     buildCommand: npm install && npm run build

@@ -31,5 +31,10 @@ export default defineConfig({
       },
     },
   },
-  base: '/'
+  base: '/',
+  resolve: {
+    alias: {
+      '@': '/src',
+    },
+  },
 });
