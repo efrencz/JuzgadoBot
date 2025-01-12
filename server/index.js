@@ -25,13 +25,11 @@ process.env.DATABASE_URL = process.env.DATABASE_URL || 'sqlite:./database.sqlite
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware para CORS
+// Configuración de CORS
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL] 
-    : ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174', 'http://localhost:5174', 'http://127.0.0.1:5174'],
-  credentials: true,
+  origin: ['https://frontend-b3ss.onrender.com', 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
   allowedHeaders: ['Content-Type', 'Accept', 'Authorization']
 }));
 
@@ -68,7 +66,7 @@ app.use('/clear', clearRoutes);
 
 // Ruta de prueba
 app.get('/test', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ message: 'Backend is working!' });
 });
 
 // Ruta base
@@ -124,8 +122,8 @@ const startServer = async () => {
     }
 
     // Iniciar el servidor en el puerto 3000
-    app.listen(3000, () => {
-      console.log('Server is running on port 3000');
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
     }).on('error', (error) => {
       if (error.code === 'EADDRINUSE') {
         console.error('Port 3000 is already in use. Please make sure no other process is using it.');
