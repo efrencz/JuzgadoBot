@@ -3,3 +3,6 @@
 /admin/* /index.html 200
 /static/* /static/:splat 200
 /assets/* /assets/:splat 200
+
+# Redirigir todas las rutas no encontradas al index.html
+/* /index.html 200!
