@@ -24,13 +24,15 @@ services:
         sync: false
   - type: web
     name: frontend
-    env: static
+    env: node
+    plan: free
     buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
-    pullRequestPreviewsEnabled: true
+    startCommand: node server.js
     envVars:
       - key: NODE_VERSION
         value: 18.17.0
+      - key: PORT
+        value: 10000
       - key: VITE_API_URL
         value: https://juzgadobot.onrender.com
     headers:
@@ -40,13 +42,3 @@ services:
       - path: /*
         name: X-Frame-Options
         value: DENY
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-      - type: rewrite
-        source: /admin
-        destination: /index.html
-      - type: rewrite
-        source: /admin/*
-        destination: /index.html
