@@ -26,6 +26,17 @@ app.use((req, res, next) => {
   next();
 });
 
+// Add logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
+// Add specific route for admin before the catch-all
+app.get('/admin', (req, res) => {
+  res.sendFile(join(__dirname, 'dist', 'index.html'));
+});
+
 // Manejar todas las rutas de la aplicación React
 app.get('*', (req, res) => {
   res.sendFile(join(__dirname, 'dist', 'index.html'));
