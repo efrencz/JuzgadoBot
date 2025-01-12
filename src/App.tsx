@@ -47,6 +47,12 @@ export const App: React.FC = () => {
   }, [messages]);
 
   useEffect(() => {
+    // Agregar mensaje de bienvenida inicial
+    setMessages([{
+      role: 'bot',
+      content: '¡Bienvenido al Chatbot del Juzgado! Por favor, dime tu nombre para comenzar.'
+    }]);
+
     const checkConnection = async () => {
       const isConnected = await testConnection();
       if (!isConnected) {
