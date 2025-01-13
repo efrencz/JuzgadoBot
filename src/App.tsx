@@ -365,8 +365,8 @@ export const App: React.FC = () => {
             <div className="flex-shrink-0">
               <img 
                 alt="Logo"
-                className="h-12 w-auto"
-                src="./src/assets/logo.png"
+                className="w-32 h-32 mb-4"
+                src="/logo.png"
               />
             </div>
             <div className="flex-grow text-center mx-4">
