@@ -247,38 +247,33 @@ export const App: React.FC = () => {
     }, 2000);
   };
 
-  const handleReset = () => {
+  const resetChat = () => {
+    if (isResetting.current) return; // Evitar resets múltiples
     isResetting.current = true;
-    addMessage({
+    
+    setMessages([{
       role: 'bot',
-      content: '👋 Gracias por usar nuestro servicio. ¡Hasta pronto!'
-    });
-    setTimeout(() => {
-      setMessages([]);
-      setQueryStage(QueryStage.AskingName);
-      setUserName('');
-      setUserPhone('');
-      setSelectedQueryType(null);
-      // Añadir el mensaje inicial después de limpiar
-      setTimeout(() => {
-        addMessage({
-          role: 'bot',
-          content: '👋 ¡Hola! Soy el asistente virtual del Juzgado. Para empezar, ¿podrías decirme tu nombre? 😊'
-        });
-        isResetting.current = false;
-      }, 100);
-    }, 2000);
+      content: '👋 ¡Hola! Por favor, ingresa tu nombre para comenzar.'
+    }]);
+    setQueryStage(QueryStage.AskingName);
+    setSelectedQueryType(null);
+    setInput('');
+    setUserName('');
+    setUserPhone('');
+    
+    isResetting.current = false;
+  };
+
+  const handleReset = () => {
+    // Mostrar mensaje de confirmación
+    if (window.confirm('¿Estás seguro que deseas terminar el chat? Se perderá toda la conversación.')) {
+      resetChat();
+    }
   };
 
   const toggleView = () => {
     setShowCalendar(!showCalendar);
-    // Si estamos cambiando a calendario, resetear el chat
-    if (!showCalendar) {
-      setMessages([]);
-      setQueryStage(QueryStage.AskingName);
-      setSelectedQueryType(null);
-      setInput('');
-    }
+    // Ya no reseteamos el chat al cambiar de vista
   };
 
   const getPlaceholderText = () => {
