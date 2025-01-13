@@ -361,34 +361,52 @@ export const App: React.FC = () => {
     <div className="flex flex-col min-h-screen bg-gray-100">
       <header className="bg-gradient-to-r from-blue-700 to-blue-900 text-white shadow-lg">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+          <div className="flex flex-col items-center justify-center space-y-4 md:space-y-6 lg:flex-row lg:space-y-0 lg:justify-between">
+            {/* Logo */}
             <div className="flex-shrink-0 bg-white p-2 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
               <img 
                 alt="Logo Consejo Superior de la Judicatura"
-                className="h-16 w-auto object-contain"
+                className="h-12 sm:h-14 md:h-16 w-auto object-contain"
                 src="/logo.png"
                 style={{
-                  maxWidth: '300px',
+                  maxWidth: '250px',
                   height: 'auto'
                 }}
               />
             </div>
-            <div className="flex-grow text-center mx-4">
-              <h1 className="text-xl font-bold mb-1">
+
+            {/* Título y Subtítulo */}
+            <div className="flex-grow text-center px-4 max-w-2xl">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-2">
                 Asistente Virtual Judicial
               </h1>
-              <p className="text-sm opacity-90">
+              <p className="text-xs sm:text-sm md:text-base opacity-90 px-2">
                 Juzgado 01 Civil del Circuito Especializado en Restitución de Tierras
               </p>
             </div>
-            <div className="flex-shrink-0">
+
+            {/* Botones */}
+            <div className="flex-shrink-0 flex flex-row lg:flex-col items-center space-x-2 lg:space-x-0 lg:space-y-2">
               <button
                 onClick={toggleView}
-                className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-blue-900 rounded-lg hover:bg-yellow-400 transition-colors font-medium"
+                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                aria-label={showCalendar ? "Ver Chat" : "Ver Calendario"}
               >
                 {showCalendar ? <MessageCircle size={20} /> : <Calendar size={20} />}
-                <span>{showCalendar ? 'CHAT' : 'EVENTOS'}</span>
+                <span className="ml-2 hidden sm:inline">
+                  {showCalendar ? "Chat" : "Eventos"}
+                </span>
               </button>
+              {!showCalendar && (
+                <button
+                  onClick={handleReset}
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                  aria-label="Terminar Chat"
+                >
+                  <LogOut size={20} />
+                  <span className="ml-2 hidden sm:inline">Terminar Chat</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
