@@ -373,8 +373,13 @@ export const App: React.FC = () => {
                 }}
               />
             </div>
-            <div className="flex-grow text-center mx-4 font-semibold text-lg">
-              Sistema de Consulta de Procesos Judiciales
+            <div className="flex-grow text-center mx-4">
+              <h1 className="text-xl font-bold mb-1">
+                Asistente Virtual Judicial
+              </h1>
+              <p className="text-sm opacity-90">
+                Juzgado 01 Civil del Circuito Especializado en Restitución de Tierras
+              </p>
             </div>
             <div className="flex-shrink-0">
               <button
