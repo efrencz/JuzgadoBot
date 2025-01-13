@@ -359,23 +359,22 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
-      <header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
-        <div className="container mx-auto px-4 py-3">
+      <header className="bg-gradient-to-r from-blue-700 to-blue-900 text-white shadow-lg">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 bg-white p-2 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
               <img 
-                alt="Logo"
-                className="w-32 h-32 mb-4"
+                alt="Logo Consejo Superior de la Judicatura"
+                className="h-16 w-auto object-contain"
                 src="/logo.png"
+                style={{
+                  maxWidth: '300px',
+                  height: 'auto'
+                }}
               />
             </div>
-            <div className="flex-grow text-center mx-4">
-              <h1 className="text-xl font-bold">
-                Asistente Virtual Judicial
-              </h1>
-              <p className="text-sm opacity-90">
-                Juzgado 01 Civil del Circuito Especializado en Restitución de Tierras
-              </p>
+            <div className="flex-grow text-center mx-4 font-semibold text-lg">
+              Sistema de Consulta de Procesos Judiciales
             </div>
             <div className="flex-shrink-0">
               <button
