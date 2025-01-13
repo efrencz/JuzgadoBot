@@ -385,28 +385,18 @@ export const App: React.FC = () => {
               </p>
             </div>
 
-            {/* Botones */}
-            <div className="flex-shrink-0 flex flex-row lg:flex-col items-center space-x-2 lg:space-x-0 lg:space-y-2">
+            {/* Botones de Navegación */}
+            <div className="flex-shrink-0">
               <button
                 onClick={toggleView}
-                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                 aria-label={showCalendar ? "Ver Chat" : "Ver Calendario"}
               >
                 {showCalendar ? <MessageCircle size={20} /> : <Calendar size={20} />}
-                <span className="ml-2 hidden sm:inline">
+                <span className="ml-2">
                   {showCalendar ? "Chat" : "Eventos"}
                 </span>
               </button>
-              {!showCalendar && (
-                <button
-                  onClick={handleReset}
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
-                  aria-label="Terminar Chat"
-                >
-                  <LogOut size={20} />
-                  <span className="ml-2 hidden sm:inline">Terminar Chat</span>
-                </button>
-              )}
             </div>
           </div>
         </div>
