@@ -8,9 +8,6 @@ const __dirname = dirname(__filename);
 const app = express();
 const port = process.env.PORT || 10000;
 
-// Servir archivos estáticos
-app.use(express.static(join(__dirname, 'dist')));
-
 // Middleware para manejar CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -26,22 +23,35 @@ app.use((req, res, next) => {
   next();
 });
 
-// Add logging middleware
+// Middleware de logging para debugging
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
 
-// Add specific route for admin before the catch-all
-app.get('/admin', (req, res) => {
-  res.sendFile(join(__dirname, 'dist', 'index.html'));
+// Servir archivos estáticos desde la carpeta dist
+app.use(express.static(join(__dirname, 'dist')));
+
+// API endpoints deben ir antes de la configuración de client-side routing
+app.use('/api', (req, res, next) => {
+  // Aquí irían tus rutas de API
+  next();
 });
 
-// Manejar todas las rutas de la aplicación React
-app.get('*', (req, res) => {
+// Configuración para client-side routing
+const sendIndexHtml = (req, res) => {
+  console.log('Serving index.html for path:', req.path);
   res.sendFile(join(__dirname, 'dist', 'index.html'));
-});
+};
+
+// Rutas específicas de la aplicación React
+app.get('/admin', sendIndexHtml);
+app.get('/admin/*', sendIndexHtml);
+
+// Todas las demás rutas no manejadas sirven index.html
+app.get('*', sendIndexHtml);
 
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Servidor corriendo en el puerto ${port}`);
+  console.log(`Sirviendo archivos estáticos desde: ${join(__dirname, 'dist')}`);
 });
