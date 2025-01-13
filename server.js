@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 10000;
+const port = process.env.PORT || 3000;
 
 // Middleware para manejar CORS
 app.use((req, res, next) => {
@@ -29,24 +29,24 @@ app.use((req, res, next) => {
   next();
 });
 
-// Servir archivos estáticos desde la carpeta dist
-app.use(express.static(join(__dirname, 'dist')));
-
-// API endpoints deben ir antes de la configuración de client-side routing
-app.use('/api', (req, res, next) => {
-  // Aquí irían tus rutas de API
-  next();
-});
-
 // Configuración para client-side routing
 const sendIndexHtml = (req, res) => {
   console.log('Serving index.html for path:', req.path);
   res.sendFile(join(__dirname, 'dist', 'index.html'));
 };
 
-// Rutas específicas de la aplicación React
+// Rutas específicas de la aplicación React - DEBEN IR ANTES de los archivos estáticos
 app.get('/admin', sendIndexHtml);
 app.get('/admin/*', sendIndexHtml);
+
+// API endpoints
+app.use('/api', (req, res, next) => {
+  // Aquí irían tus rutas de API
+  next();
+});
+
+// Servir archivos estáticos desde la carpeta dist
+app.use(express.static(join(__dirname, 'dist')));
 
 // Todas las demás rutas no manejadas sirven index.html
 app.get('*', sendIndexHtml);
