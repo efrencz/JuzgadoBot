@@ -22,7 +22,7 @@ const EventCard: React.FC<EventCardProps> = ({ actividad, horaInicio, enlaceAudi
         className="event-link"
       >
         <Link size={16} />
-        <span>Ver audiencia</span>
+        <span>Enlace de la audiencia</span>
       </a>
 
       <style jsx>{`
