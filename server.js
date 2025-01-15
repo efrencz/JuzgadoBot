@@ -29,17 +29,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Configuración para client-side routing
-const sendIndexHtml = (req, res) => {
-  console.log('Serving index.html for path:', req.path);
-  res.sendFile(join(__dirname, 'dist', 'index.html'));
-};
-
-// Rutas específicas de la aplicación React - DEBEN IR ANTES de los archivos estáticos
-app.get('/admin', sendIndexHtml);
-app.get('/admin/*', sendIndexHtml);
-
-// API endpoints
+// API endpoints primero
 app.use('/api', (req, res, next) => {
   // Aquí irían tus rutas de API
   next();
@@ -48,8 +38,13 @@ app.use('/api', (req, res, next) => {
 // Servir archivos estáticos desde la carpeta dist
 app.use(express.static(join(__dirname, 'dist')));
 
-// Todas las demás rutas no manejadas sirven index.html
-app.get('*', sendIndexHtml);
+// Todas las rutas que no sean API deben servir index.html
+app.get('*', (req, res) => {
+  console.log('Serving index.html for path:', req.path);
+  // Asegurarse de que el encabezado Content-Type esté configurado correctamente
+  res.set('Content-Type', 'text/html');
+  res.sendFile(join(__dirname, 'dist', 'index.html'));
+});
 
 app.listen(port, () => {
   console.log(`Servidor corriendo en el puerto ${port}`);
