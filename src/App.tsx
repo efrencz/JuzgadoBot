@@ -112,7 +112,7 @@ export const App: React.FC = () => {
       if (selectedQueryType === 'radicado' && !validateRadicado(userInput)) {
         addMessage({
           role: 'bot',
-          content: 'El formato del radicado debe ser: 1234-12345 (4 dígitos, guion, 5 dígitos). Por favor, intenta nuevamente.'
+          content: 'El formato del radicado debe ser: 1234-12345 (4 dígitos del año de radicación, guion, 5 dígitos. Ejemplo 2024-00015). Por favor, intenta nuevamente.'
         });
         return;
       }
